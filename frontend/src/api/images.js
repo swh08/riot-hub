@@ -14,7 +14,6 @@ export async function uploadImage(file, payload = {}) {
 
   Object.entries(payload).forEach(([k, v]) => {
     if (Array.isArray(v)) {
-      // DRF 常见写法：数组用多次 append
       v.forEach((item) => form.append(k, item));
     } else if (v !== undefined && v !== null) {
       form.append(k, v);

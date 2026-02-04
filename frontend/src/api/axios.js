@@ -5,7 +5,6 @@ export const http = axios.create({
   timeout: 15000,
 });
 
-// 可选：统一处理错误/日志
 http.interceptors.response.use(
   (res) => res,
   (error) => {
