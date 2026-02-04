@@ -39,7 +39,8 @@
             <template #prepend>
               <v-chip
                 class="ma-2 font-weight-bold"
-                :color="tierColor(comp.tier)"
+                :color="tierColor(comp.tierLevel)"
+                variant="outlined"
               >
                 {{ comp.tierName }}
               </v-chip>
@@ -70,7 +71,11 @@
   <v-app-bar>
     <v-app-bar-title v-if="currentComp">
       <div class="text-center text-h6 font-weight-bold">
-        <v-chip class="font-weight-bold" :color="tierColor(currentComp.tier)">
+        <v-chip
+          class="font-weight-bold"
+          :color="tierColor(currentComp.tierLevel)"
+          variant="outlined"
+        >
           {{ currentComp.tierName }}
         </v-chip>
         {{ currentComp.name }}
@@ -89,7 +94,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
+import { http } from "@/api/axios";
 
 const drawer = ref(null);
 const search = ref(null);
@@ -98,35 +104,58 @@ const currentComp = ref(null);
 const copiedKey = ref(null);
 let copiedTimer = null;
 
-const comps = ref([
-  {
-    tier: "0",
-    tierName: "S",
-    name: "比尔95",
-    artifacts: ["黎明核心", "护臂"],
-    code: "比尔95",
-    image:
-      "https://images.pexels.com/photos/33315262/pexels-photo-33315262.jpeg",
-  },
-  {
-    tier: "1",
-    tierName: "A",
-    name: "炸弹人95",
-    artifacts: ["黎明核心"],
-    code: "炸弹人95",
-    image:
-      "https://images.pexels.com/photos/34314127/pexels-photo-34314127.jpeg",
-  },
-  {
-    tier: "1",
-    tierName: "A",
-    name: "德玛琴女",
-    artifacts: ["巫妖之祸"],
-    code: "德玛琴女",
-    image:
-      "https://images.pexels.com/photos/34314126/pexels-photo-34314126.jpeg",
-  },
-]);
+const comps = ref([]);
+const season = ref("");
+
+function mapTierName(tierLevel) {
+  switch (Number(tierLevel)) {
+    case 0:
+      return "S";
+    case 1:
+      return "A";
+    case 2:
+      return "B";
+    default:
+      return String(tierLevel ?? "");
+  }
+}
+
+function mappedPayload(item) {
+  return {
+    uid: item.uid,
+    tierLevel: String(item.tier_level),
+    tierName: item.tier_display || mapTierName(item.tier_level),
+    name: item.filename,
+    keywords: item.keywords || [],
+    code: item.comp_code,
+    image: item.image_url || item.image,
+    raw: item,
+  };
+}
+
+async function loadComps() {
+  const params = {};
+  if (season.value) params.season = season.value;
+
+  const res = await http.get("/api/images/", { params });
+
+  const list = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
+
+  comps.value = list.map(mappedPayload);
+
+  if (
+    currentComp.value &&
+    !comps.value.some((c) => c.uid === currentComp.value.uid)
+  ) {
+    currentComp.value = comps.value[0] ?? null;
+  }
+}
+
+onMounted(loadComps);
+
+watch(season, () => {
+  loadComps();
+});
 
 const filterdComps = computed(() => {
   const keyword = (search.value ?? "").trim().toLowerCase();
@@ -135,13 +164,11 @@ const filterdComps = computed(() => {
     ? comps.value.filter(
         (comp) =>
           comp.name.toLowerCase().includes(keyword) ||
-          comp.artifacts.some((artifact) =>
-            artifact.toLowerCase().includes(keyword),
-          ),
+          comp.keywords.some((kw) => kw.toLowerCase().includes(keyword)),
       )
     : comps.value;
 
-  return [...list].sort((a, b) => a.tier.localeCompare(b.tier));
+  return [...list].sort((a, b) => a.tierLevel.localeCompare(b.tierLevel));
 });
 
 async function handleCopy(code) {
@@ -156,8 +183,8 @@ async function handleCopy(code) {
   }, 1500);
 }
 
-function tierColor(tier) {
-  switch (tier) {
+function tierColor(tierLevel) {
+  switch (tierLevel) {
     case "0":
       return "red";
     case "1":
