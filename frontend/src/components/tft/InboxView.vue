@@ -1,5 +1,10 @@
 <template>
-  <v-navigation-drawer v-model="drawer" persistent class="nav-drawer">
+  <v-navigation-drawer
+    v-model="drawer"
+    persistent
+    class="nav-drawer transparent"
+    elevation="10"
+  >
     <div class="nav-inner">
       <div class="pa-3">
         <a href="/" class="d-flex align-center text-decoration-none">
@@ -19,6 +24,7 @@
           prepend-inner-icon="mdi-magnify"
           variant="solo-filled"
           label="搜索阵容或装备"
+          rounded="lg"
           flat
           clearable
           single-line
@@ -32,6 +38,7 @@
             v-for="comp in filterdComps"
             :key="comp.name"
             color="primary"
+            rounded="lg"
             :title="comp.name"
             :value="comp.name"
             @click="currentComp = comp"
@@ -68,7 +75,8 @@
     </div>
   </v-navigation-drawer>
 
-  <v-app-bar>
+  <v-app-bar class="px-3 transparent">
+    <v-spacer />
     <v-app-bar-title v-if="currentComp">
       <div class="text-center text-h6 font-weight-bold">
         <v-chip
@@ -81,9 +89,38 @@
         {{ currentComp.name }}
       </div>
     </v-app-bar-title>
+    <v-spacer />
+    <v-menu scrim width="200">
+      <template v-slot:activator="{ props }">
+        <v-btn icon v-bind="props">
+          <v-avatar>
+            <v-icon>mdi-widgets</v-icon>
+          </v-avatar>
+        </v-btn>
+      </template>
+      <v-card rounded="lg">
+        <v-list nav>
+          <v-list-item
+            v-for="menu in menuItems"
+            :key="menu.title"
+            color="primary"
+            rounded="lg"
+            :title="menu.title"
+            :value="menu.title"
+            @click="handleMenuClick(menu)"
+          >
+            <template #prepend>
+              <v-icon>
+                {{ menu.icon }}
+              </v-icon>
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-card>
+    </v-menu>
   </v-app-bar>
 
-  <v-card tile>
+  <v-card tile class="transparent">
     <v-img
       v-if="currentComp"
       contain
@@ -96,6 +133,9 @@
 <script setup>
 import { computed, ref, onMounted, watch } from "vue";
 import { http } from "@/api/axios";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const drawer = ref(null);
 const search = ref(null);
@@ -106,6 +146,10 @@ let copiedTimer = null;
 
 const comps = ref([]);
 const season = ref("");
+
+const menuItems = ref([
+  { title: "Settings", value: "settings", icon: "mdi-cog" },
+]);
 
 function mapTierName(tierLevel) {
   switch (Number(tierLevel)) {
@@ -139,16 +183,7 @@ async function loadComps() {
 
   const res = await http.get("/api/images/", { params });
 
-  const list = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
-
-  comps.value = list.map(mappedPayload);
-
-  if (
-    currentComp.value &&
-    !comps.value.some((c) => c.uid === currentComp.value.uid)
-  ) {
-    currentComp.value = comps.value[0] ?? null;
-  }
+  comps.value = res.data.map(mappedPayload);
 }
 
 onMounted(loadComps);
@@ -183,6 +218,13 @@ async function handleCopy(code) {
   }, 1500);
 }
 
+function handleMenuClick(menu) {
+  console.log("Clicked menu:", menu);
+  if (menu.value === "settings") {
+    router.push("/settings");
+  }
+}
+
 function tierColor(tierLevel) {
   switch (tierLevel) {
     case "0":
@@ -215,10 +257,8 @@ function tierColor(tierLevel) {
   scrollbar-width: thin;
 }
 
-.v-app-bar,
-.v-navigation-drawer,
-.v-card {
-  background-color: rgba(20, 20, 20, 0.6) !important;
-  backdrop-filter: blur(6px);
+.transparent {
+  background-color: transparent !important;
+  backdrop-filter: blur(8px);
 }
 </style>
