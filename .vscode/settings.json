@@ -1,3 +1,8 @@
 {
-  "vue.hover.rich": true
+  "vue.hover.rich": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
