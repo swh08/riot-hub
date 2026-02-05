@@ -26,7 +26,7 @@ class TeamComposition(models.Model):
     image = models.ImageField(upload_to=upload_to)
     filename = models.CharField(max_length=255)
 
-    comp_code = models.CharField(max_length=255)
+    comp_code = models.CharField(max_length=255, blank=True)
     tier_level = models.IntegerField()
     tier_display = models.CharField(max_length=255)
 
@@ -42,7 +42,7 @@ class TeamComposition(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["season", "comp_code"], name="uniq_comp_code_per_season"
+                fields=["filename", "comp_code"], name="uniq_comp_code_per_season"
             ),
         ]
 
