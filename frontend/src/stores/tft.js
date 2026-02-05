@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
-import { http } from "@/api/axios";
+import * as tftApi from "@/api/comp";
 
 export const useTftStore = defineStore("tft", () => {
   const drawer = ref(true);
@@ -43,7 +43,7 @@ export const useTftStore = defineStore("tft", () => {
     return comps.value.find((c) => c.uid === currentUid.value) || null;
   });
 
-  const filterdComps = computed(() => {
+  const filteredComps = computed(() => {
     const keyword = (search.value ?? "").trim().toLowerCase();
 
     const list = keyword
@@ -60,12 +60,7 @@ export const useTftStore = defineStore("tft", () => {
   });
 
   async function loadComps() {
-    const params = {};
-    if (season.value) params.season = season.value;
-
-    const res = await http.get("/api/images/", { params });
-    const list = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
-
+    const list = await tftApi.listComps({ season: season.value });
     comps.value = list.map(mappedPayload);
   }
 
@@ -74,8 +69,7 @@ export const useTftStore = defineStore("tft", () => {
   }
 
   async function patchComp(uid, payload) {
-    const res = await http.patch(`/api/images/${uid}/`, payload);
-    const data = res.data;
+    const data = await tftApi.patchComp(uid, payload);
 
     const item = comps.value.find((c) => c.uid === uid);
     if (item) {
@@ -132,7 +126,9 @@ export const useTftStore = defineStore("tft", () => {
     comps,
     currentUid,
     currentComp,
-    filterdComps,
+    filteredComps,
+    // Backward compatible alias (can be removed later)
+    filterdComps: filteredComps,
     copiedKey,
     loadComps,
     patchComp,

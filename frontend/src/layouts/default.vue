@@ -36,7 +36,7 @@
         <div class="nav-list">
           <v-list nav>
             <v-list-item
-              v-for="comp in tft.filterdComps"
+              v-for="comp in tft.filteredComps"
               :key="comp.uid"
               color="primary"
               rounded="lg"
@@ -151,6 +151,17 @@ function goSettings() {
 </script>
 
 <style scoped>
+.app-root :deep(.v-application__wrap) {
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0) 40%,
+      rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.75) 100%
+    ),
+    url("@/assets/background.webp") center / cover no-repeat fixed;
+}
+
 .nav-drawer :deep(.v-navigation-drawer__content) {
   overflow: hidden;
 }
