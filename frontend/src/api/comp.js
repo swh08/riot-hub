@@ -11,17 +11,23 @@ export async function listComps({ season } = {}) {
   const params = {};
   if (season) params.season = season;
 
-  const res = await http.get("/api/images/", { params });
+  const res = await http.get("/images/", { params });
   const data = res.data;
-  return Array.isArray(data) ? data : data?.results ?? [];
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function patchComp(uid, payload) {
-  const res = await http.patch(`/api/images/${uid}/`, payload);
+  const res = await http.patch(`/images/${uid}/`, payload);
   return res.data;
 }
 
-export async function uploadComp({ file, comp_code, tier_level, tier_display, keywords = [] }) {
+export async function uploadComp({
+  file,
+  comp_code,
+  tier_level,
+  tier_display,
+  keywords = [],
+}) {
   const fd = new FormData();
   fd.append("image", file);
   fd.append("comp_code", comp_code);
@@ -29,7 +35,7 @@ export async function uploadComp({ file, comp_code, tier_level, tier_display, ke
   fd.append("tier_display", tier_display);
   for (const kw of keywords) fd.append("keywords", kw);
 
-  const res = await http.post("/api/images/", fd, {
+  const res = await http.post("/images/", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
@@ -54,7 +60,7 @@ export async function uploadImage(file, payload = {}) {
     }
   });
 
-  const res = await http.post("/api/images/", form, {
+  const res = await http.post("/images/", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;

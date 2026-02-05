@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# Node / package managers
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist
+build
+.out
+.next
+.cache
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+
+# Tests / coverage
+coverage
+cypress
+playwright
+
+# Docs
+*.md
