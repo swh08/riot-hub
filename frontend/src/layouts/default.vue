@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app class="app-root">
     <v-navigation-drawer
       v-model="tft.drawer"
       persistent
@@ -124,7 +124,7 @@
       </v-menu>
     </v-app-bar>
 
-    <v-main>
+    <v-main class="main-root">
       <router-view />
     </v-main>
   </v-app>
@@ -166,5 +166,15 @@ function goSettings() {
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+.app-root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-root {
+  height: calc(100vh - 64px);
+  overflow: hidden;
 }
 </style>
