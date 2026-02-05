@@ -46,9 +46,9 @@
             >
               <template #prepend>
                 <v-chip
-                  class="ma-2 font-weight-bold"
+                  class="ma-2 text-h5 font-weight-bold"
                   :color="tft.tierColor(comp.tierLevel)"
-                  variant="outlined"
+                  variant="text"
                 >
                   {{ comp.tierName }}
                 </v-chip>
@@ -107,8 +107,8 @@
           </v-btn>
         </template>
 
-        <v-card rounded="lg">
-          <v-list nav>
+        <v-card rounded="lg" variant="tonal">
+          <v-list nav class="pa-2">
             <v-list-item
               color="primary"
               rounded="lg"
@@ -166,10 +166,5 @@ function goSettings() {
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-}
-
-.transparent {
-  background-color: transparent !important;
-  backdrop-filter: blur(8px);
 }
 </style>

@@ -13,10 +13,3 @@
 import { useTftStore } from "@/stores/tft";
 const tft = useTftStore();
 </script>
-
-<style scoped>
-.transparent {
-  background-color: transparent !important;
-  backdrop-filter: blur(8px);
-}
-</style>

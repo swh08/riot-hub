@@ -20,7 +20,6 @@ declare module 'vue-router/auto-routes' {
   export interface RouteNamedMap {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
     '/settings': RouteRecordInfo<'/settings', '/settings', Record<never, never>, Record<never, never>>,
-    '/tft': RouteRecordInfo<'/tft', '/tft', Record<never, never>, Record<never, never>>,
   }
 
   /**
@@ -40,10 +39,6 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/settings.vue': {
       routes: '/settings'
-      views: never
-    }
-    'src/pages/tft.vue': {
-      routes: '/tft'
       views: never
     }
   }

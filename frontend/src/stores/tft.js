@@ -73,6 +73,30 @@ export const useTftStore = defineStore("tft", () => {
     currentUid.value = comp.uid;
   }
 
+  async function patchComp(uid, payload) {
+    const res = await http.patch(`/api/images/${uid}/`, payload);
+    const data = res.data;
+
+    const item = comps.value.find((c) => c.uid === uid);
+    if (item) {
+      if (data.comp_code !== undefined) item.code = data.comp_code;
+      if (data.keywords !== undefined) item.keywords = data.keywords;
+
+      if (data.tier_level !== undefined) {
+        item.tierLevel = String(data.tier_level);
+      }
+      if (data.tier_display !== undefined) {
+        item.tierName = data.tier_display;
+      }
+
+      if (item.raw) {
+        Object.assign(item.raw, data);
+      }
+    }
+
+    return data;
+  }
+
   async function handleCopy(code) {
     await navigator.clipboard.writeText(code);
     copiedKey.value = code;
@@ -111,6 +135,7 @@ export const useTftStore = defineStore("tft", () => {
     filterdComps,
     copiedKey,
     loadComps,
+    patchComp,
     selectComp,
     handleCopy,
     tierColor,
