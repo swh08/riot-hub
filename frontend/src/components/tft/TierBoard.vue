@@ -1,6 +1,12 @@
 <template>
   <div class="tier-board-root">
-    <v-alert v-if="errorMsg" type="error" class="mb-4" density="compact">
+    <v-alert
+      v-if="errorMsg"
+      type="error"
+      class="mb-4"
+      density="compact"
+      style="flex: 0 0 auto"
+    >
       {{ errorMsg }}
     </v-alert>
 

@@ -15,7 +15,7 @@ class Season(models.Model):
 
 
 def upload_to(instance, filename: str) -> str:
-    return f"season/{instance.season.version}/{instance.comp_code}/{filename}"
+    return f"season/{instance.season.version}/{filename}"
 
 
 class TeamComposition(models.Model):
