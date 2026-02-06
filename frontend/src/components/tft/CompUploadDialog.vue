@@ -13,9 +13,10 @@
 
       <v-card-text>
         <v-file-input
-          v-model="form.file"
+          v-model="form.files"
+          multiple
           accept="image/*"
-          label="选择图片"
+          label="选择图片（可多选）"
           variant="outlined"
           prepend-inner-icon="mdi-image"
           prepend-icon=""
@@ -45,7 +46,7 @@
         </div>
 
         <v-alert v-if="error" type="error" density="compact" class="mt-4">
-          {{ error }}
+          <div style="white-space: pre-line">{{ error }}</div>
         </v-alert>
       </v-card-text>
 
@@ -83,9 +84,9 @@ const saving = ref(false);
 const error = ref("");
 
 const form = reactive({
-  file: null,
+  files: [],
   compCode: "",
-  tierName: "A",
+  tierName: "B",
   keywords: [],
 });
 
@@ -102,9 +103,9 @@ watch(
   (v) => {
     if (!v) return;
     error.value = "";
-    form.file = null;
+    form.files = [];
     form.compCode = "";
-    form.tierName = "A";
+    form.tierName = "B";
     form.keywords = [];
   },
 );
@@ -112,14 +113,14 @@ watch(
 async function submit() {
   error.value = "";
 
-  const file = form.file;
+  const files = Array.isArray(form.files)
+    ? form.files
+    : form.files
+      ? [form.files]
+      : [];
   const comp_code = normalize(form.compCode);
-  if (!file) {
+  if (!files.length) {
     error.value = "请选择图片";
-    return;
-  }
-  if (!comp_code) {
-    error.value = "阵容码不能为空";
     return;
   }
 
@@ -129,13 +130,34 @@ async function submit() {
 
   saving.value = true;
   try {
-    await compApi.uploadComp({
-      file,
-      comp_code,
-      tier_level,
-      tier_display,
-      keywords,
-    });
+    const failures = [];
+    for (const file of files) {
+      try {
+        await compApi.uploadComp({
+          file,
+          comp_code,
+          tier_level,
+          tier_display,
+          keywords,
+        });
+      } catch (e) {
+        const data = e?.response?.data;
+        const msg =
+          data?.detail ||
+          data?.comp_code?.[0] ||
+          data?.image?.[0] ||
+          data?.keywords?.[0] ||
+          e?.message ||
+          "上传失败";
+        failures.push(`${file?.name || "(unknown file)"}: ${msg}`);
+      }
+    }
+
+    if (failures.length) {
+      error.value = `部分上传失败（${failures.length}/${files.length}）：\n${failures.join("\n")}`;
+      emit("uploaded");
+      return;
+    }
 
     open.value = false;
     emit("uploaded");
