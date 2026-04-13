@@ -1,15 +1,15 @@
-import axios from "axios";
+import axios from 'axios'
 
-const baseURL = "/api";
+const baseURL = '/api'
 
 export const http = axios.create({
   baseURL,
-  timeout: 15000,
-});
+  timeout: 15_000,
+})
 
 http.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    return Promise.reject(error);
+  res => res,
+  error => {
+    return Promise.reject(error)
   },
-);
+)

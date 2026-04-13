@@ -1,5 +1,5 @@
 <template>
-  <v-card tile class="transparent">
+  <v-card class="transparent" tile>
     <v-img
       v-if="tft.currentComp"
       contain
@@ -10,6 +10,6 @@
 </template>
 
 <script setup>
-import { useTftStore } from "@/stores/tft";
-const tft = useTftStore();
+  import { useTftStore } from '@/stores/tft'
+  const tft = useTftStore()
 </script>

@@ -10,25 +10,25 @@
 
     <v-card-text class="tier-body">
       <Draggable
-        class="drop-zone"
-        :list="items"
-        item-key="uid"
-        :group="{ name: group, pull: true, put: true }"
         :animation="150"
-        :force-fallback="true"
+        chosen-class="drag-chosen"
+        class="drop-zone"
+        drag-class="drag-dragging"
+        :empty-insert-threshold="24"
         :fallback-on-body="true"
         :fallback-tolerance="8"
+        :filter="'.no-drag, button, input, textarea, select, a'"
+        :force-fallback="true"
+        ghost-class="drag-ghost"
+        :group="{ name: group, pull: true, put: true }"
+        :invert-swap="true"
+        item-key="uid"
+        :list="items"
+        :prevent-on-filter="false"
         :scroll="true"
         :scroll-sensitivity="80"
         :scroll-speed="14"
         :swap-threshold="0.85"
-        :invert-swap="true"
-        :empty-insert-threshold="24"
-        ghost-class="drag-ghost"
-        chosen-class="drag-chosen"
-        drag-class="drag-dragging"
-        :filter="'.no-drag, button, input, textarea, select, a'"
-        :prevent-on-filter="false"
         @change="$emit('change', $event)"
       >
         <template #item="{ element }">
@@ -44,33 +44,33 @@
 </template>
 
 <script setup>
-import Draggable from "vuedraggable";
-import { reactive } from "vue";
-import { useTftStore } from "@/stores/tft";
+  import { reactive } from 'vue'
+  import Draggable from 'vuedraggable'
+  import { useTftStore } from '@/stores/tft'
 
-defineProps({
-  title: { type: String, required: true },
-  items: { type: Array, required: true },
-  group: { type: String, default: "tiers" },
-});
+  defineProps({
+    title: { type: String, required: true },
+    items: { type: Array, required: true },
+    group: { type: String, default: 'tiers' },
+  })
 
-defineEmits(["change"]);
+  defineEmits(['change'])
 
-const tft = useTftStore();
+  const tft = useTftStore()
 
-const edit = reactive({
-  open: false,
-  comp: null,
-});
+  const edit = reactive({
+    open: false,
+    comp: null,
+  })
 
-function openEdit(comp) {
-  edit.comp = comp;
-  edit.open = true;
-}
+  function openEdit (comp) {
+    edit.comp = comp
+    edit.open = true
+  }
 
-async function saveEdit({ uid, comp_code, keywords }) {
-  await tft.patchComp(uid, { comp_code, keywords });
-}
+  async function saveEdit ({ uid, comp_code, keywords }) {
+    await tft.patchComp(uid, { comp_code, keywords })
+  }
 </script>
 
 <style scoped>

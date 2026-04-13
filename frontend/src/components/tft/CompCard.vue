@@ -12,10 +12,10 @@
 
       <v-btn
         class="no-drag"
+        color="warning"
         icon
         size="small"
         variant="text"
-        color="warning"
         @click.stop="$emit('edit', comp)"
       >
         <v-icon>mdi-pencil</v-icon>
@@ -26,7 +26,7 @@
       {{ comp.code }}
     </v-card-subtitle>
 
-    <div v-if="(comp.keywords || []).length" class="px-4 pb-3">
+    <div v-if="(comp.keywords || []).length > 0" class="px-4 pb-3">
       <v-chip
         v-for="kw in comp.keywords.slice(0, 6)"
         :key="kw"
@@ -41,15 +41,15 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+  import { computed } from 'vue'
 
-const props = defineProps({
-  comp: { type: Object, required: true },
-});
+  const props = defineProps({
+    comp: { type: Object, required: true },
+  })
 
-defineEmits(["edit"]);
+  defineEmits(['edit'])
 
-const displayName = computed(() => (props.comp?.name || "").split(".")[0]);
+  const displayName = computed(() => (props.comp?.name || '').split('.')[0])
 </script>
 
 <style scoped>
