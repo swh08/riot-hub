@@ -2,18 +2,18 @@
   <v-app class="app-root">
     <v-navigation-drawer
       v-model="tft.drawer"
-      persistent
       class="nav-drawer transparent"
       elevation="10"
+      persistent
     >
       <div class="nav-inner">
         <div class="pa-3">
-          <a href="/" class="d-flex align-center text-decoration-none">
+          <a class="d-flex align-center text-decoration-none" href="/">
             <v-img
-              src="@/assets/logo.png"
-              max-width="40"
-              max-height="40"
               contain
+              max-height="40"
+              max-width="40"
+              src="@/assets/logo.png"
             />
             <span class="text-h6 ml-2">云顶大学</span>
           </a>
@@ -21,15 +21,15 @@
           <v-text-field
             v-model="tft.search"
             class="mt-4"
-            density="compact"
-            prepend-inner-icon="mdi-magnify"
-            variant="solo-filled"
-            label="搜索阵容或装备"
-            rounded="lg"
-            flat
             clearable
-            single-line
+            density="compact"
+            flat
             hide-details
+            label="搜索阵容或装备"
+            prepend-inner-icon="mdi-magnify"
+            rounded="lg"
+            single-line
+            variant="solo-filled"
           />
         </div>
 
@@ -98,6 +98,22 @@
       </v-app-bar-title>
       <v-spacer />
 
+      <div class="season-switcher mr-3">
+        <v-select
+          density="compact"
+          :disabled="tft.seasonLoading || tft.seasonOptions.length === 0"
+          flat
+          hide-details
+          :items="tft.seasonOptions"
+          label="赛季"
+          :loading="tft.seasonLoading"
+          :model-value="tft.season"
+          rounded="lg"
+          variant="solo-filled"
+          @update:model-value="handleSeasonChange"
+        />
+      </div>
+
       <v-menu v-model="menuOpen" scrim width="200">
         <template #activator="{ props }">
           <v-btn icon v-bind="props">
@@ -108,7 +124,7 @@
         </template>
 
         <v-card rounded="lg" variant="tonal">
-          <v-list nav class="pa-2">
+          <v-list class="pa-2" nav>
             <v-list-item
               color="primary"
               rounded="lg"
@@ -131,23 +147,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { useTftStore } from "@/stores/tft";
+  import { onMounted, ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { useTftStore } from '@/stores/tft'
 
-const router = useRouter();
-const tft = useTftStore();
+  const router = useRouter()
+  const tft = useTftStore()
 
-const menuOpen = ref(false);
+  const menuOpen = ref(false)
 
-onMounted(() => {
-  if (tft.comps.length === 0) tft.loadComps();
-});
+  onMounted(async () => {
+    await tft.initializeSeason()
+  })
 
-function goSettings() {
-  menuOpen.value = false;
-  router.push("/settings");
-}
+  function goSettings () {
+    menuOpen.value = false
+    router.push('/settings')
+  }
+
+  async function handleSeasonChange (nextSeason) {
+    if (!nextSeason) return
+    await tft.changeSeason(nextSeason)
+  }
 </script>
 
 <style scoped>
@@ -187,5 +208,9 @@ function goSettings() {
 .main-root {
   height: calc(100vh - 64px);
   overflow: hidden;
+}
+
+.season-switcher {
+  width: min(220px, 32vw);
 }
 </style>
