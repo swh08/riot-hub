@@ -38,6 +38,17 @@
         <div class="nav-list">
           <v-list nav>
             <template v-if="isSettingsRoute">
+              <v-list-item
+                color="primary"
+                rounded="lg"
+                title="返回阵容"
+                @click="goHome"
+              >
+                <template #prepend>
+                  <v-icon>mdi-arrow-left-circle-outline</v-icon>
+                </template>
+              </v-list-item>
+
               <v-list-subheader>设置功能</v-list-subheader>
 
               <v-list-item
@@ -61,11 +72,11 @@
               <v-list-item
                 v-for="comp in tft.filteredComps"
                 :key="comp.uid"
+                :active="tft.currentUid === comp.uid"
                 color="primary"
                 rounded="lg"
-                :title="comp.name"
-                :value="comp.uid"
-                @click="tft.selectComp(comp)"
+                :title="displayCompName(comp.name)"
+                @click="handleCompSelect(comp)"
               >
                 <template #prepend>
                   <v-chip
@@ -123,13 +134,16 @@
 
       <v-app-bar-title class="toolbar-title">
         <div class="app-title text-center">
-          <div class="app-title__caption text-caption text-medium-emphasis">
-            {{ isSettingsRoute ? '设置中心' : '阵容总览' }}
+          <div
+            v-if="isSettingsRoute"
+            class="app-title__caption text-caption text-medium-emphasis"
+          >
+            设置中心
           </div>
 
           <div
             v-if="!isSettingsRoute && tft.currentComp"
-            class="text-h6 font-weight-bold d-flex align-center justify-center ga-2 flex-wrap"
+            class="app-title__heading text-h6 font-weight-bold d-flex align-center justify-center ga-2"
           >
             <v-chip
               class="font-weight-bold"
@@ -138,10 +152,10 @@
             >
               {{ tft.currentComp.tierName }}
             </v-chip>
-            <span>{{ tft.currentComp.name }}</span>
+            <span class="app-title__main">{{ currentCompDisplayName }}</span>
           </div>
 
-          <div v-else class="text-h6 font-weight-bold">
+          <div v-else class="app-title__heading app-title__main text-h6 font-weight-bold">
             {{ appBarTitle }}
           </div>
         </div>
@@ -184,7 +198,7 @@
               @click="goHome"
             >
               <template #prepend>
-                <v-icon>mdi-view-grid-outline</v-icon>
+                <v-icon>mdi-arrow-left-circle-outline</v-icon>
               </template>
             </v-list-item>
 
@@ -251,6 +265,10 @@
     return tft.currentComp?.name || '阵容'
   })
 
+  const currentCompDisplayName = computed(() =>
+    String(tft.currentComp?.name || '').split('.')[0],
+  )
+
   onMounted(async () => {
     await tft.initializeSeason()
   })
@@ -272,8 +290,24 @@
     { immediate: true },
   )
 
+  function closeDrawerOnMobile () {
+    if (isMobile.value) {
+      tft.drawer = false
+    }
+  }
+
+  function handleCompSelect (comp) {
+    tft.selectComp(comp)
+    closeDrawerOnMobile()
+  }
+
+  function displayCompName (name) {
+    return String(name || '').split('.')[0]
+  }
+
   function goSettings (section = normalizeSettingsSection(route.query.section)) {
     menuOpen.value = false
+    closeDrawerOnMobile()
     router.push({
       path: '/settings',
       query: {
@@ -284,6 +318,7 @@
 
   function goHome () {
     menuOpen.value = false
+    closeDrawerOnMobile()
     router.push('/')
   }
 
@@ -348,6 +383,18 @@
   min-width: 0;
 }
 
+.app-title__heading {
+  min-width: 0;
+}
+
+.app-title__main {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .season-switcher {
   width: min(220px, 32vw);
 }
@@ -385,6 +432,11 @@
 
   .app-title__caption {
     display: none;
+  }
+
+  .app-title__heading {
+    justify-content: flex-start !important;
+    gap: 6px !important;
   }
 
   .app-title :deep(.text-h6) {
