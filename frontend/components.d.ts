@@ -13,11 +13,13 @@ declare module 'vue' {
   export interface GlobalComponents {
     CompCard: typeof import('./src/components/tft/CompCard.vue')['default']
     CompEditDialog: typeof import('./src/components/tft/CompEditDialog.vue')['default']
+    CompositionManagementSection: typeof import('./src/components/tft/settings/CompositionManagementSection.vue')['default']
     CompUploadDialog: typeof import('./src/components/tft/CompUploadDialog.vue')['default']
     InboxView: typeof import('./src/components/tft/InboxView.vue')['default']
     KeywordsInput: typeof import('./src/components/tft/KeywordsInput.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SeasonManagementSection: typeof import('./src/components/tft/settings/SeasonManagementSection.vue')['default']
     TierBoard: typeof import('./src/components/tft/TierBoard.vue')['default']
     TierColumn: typeof import('./src/components/tft/TierColumn.vue')['default']
   }

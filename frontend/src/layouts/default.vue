@@ -8,24 +8,25 @@
     >
       <div class="nav-inner">
         <div class="pa-3">
-          <a class="d-flex align-center text-decoration-none" href="/">
+          <RouterLink class="d-flex align-center text-decoration-none" to="/">
             <v-img
               contain
               max-height="40"
               max-width="40"
               src="@/assets/logo.png"
             />
-            <span class="text-h6 ml-2">云顶大学</span>
-          </a>
+            <span class="text-h6 ml-2 text-white">云顶大学</span>
+          </RouterLink>
 
           <v-text-field
+            v-if="!isSettingsRoute"
             v-model="tft.search"
             class="mt-4"
             clearable
             density="compact"
             flat
             hide-details
-            label="搜索阵容或装备"
+            label="搜索阵容或关键词"
             prepend-inner-icon="mdi-magnify"
             rounded="lg"
             single-line
@@ -35,67 +36,116 @@
 
         <div class="nav-list">
           <v-list nav>
-            <v-list-item
-              v-for="comp in tft.filteredComps"
-              :key="comp.uid"
-              color="primary"
-              rounded="lg"
-              :title="comp.name"
-              :value="comp.uid"
-              @click="tft.selectComp(comp)"
-            >
-              <template #prepend>
-                <v-chip
-                  class="ma-2 text-h5 font-weight-bold"
-                  :color="tft.tierColor(comp.tierLevel)"
-                  variant="text"
-                >
-                  {{ comp.tierName }}
-                </v-chip>
-              </template>
+            <template v-if="isSettingsRoute">
+              <v-list-subheader>设置功能</v-list-subheader>
 
-              <template #append>
-                <v-tooltip location="left">
-                  <template #activator="{ props }">
-                    <v-icon
-                      v-bind="props"
-                      class="cursor-pointer"
-                      :color="
-                        tft.copiedKey === comp.code ? 'success' : undefined
-                      "
-                      :icon="
-                        tft.copiedKey === comp.code
-                          ? 'mdi-check'
-                          : 'mdi-content-copy'
-                      "
-                      @click.stop="tft.handleCopy(comp.code)"
-                    />
-                  </template>
-                  <span>{{
-                    tft.copiedKey === comp.code ? "已复制" : "复制"
-                  }}</span>
-                </v-tooltip>
-              </template>
-            </v-list-item>
+              <v-list-item
+                v-for="section in SETTINGS_SECTIONS"
+                :key="section.key"
+                :active="currentSettingsSection.key === section.key"
+                color="primary"
+                rounded="lg"
+                :title="section.title"
+                @click="goSettings(section.key)"
+              >
+                <template #prepend>
+                  <v-icon :icon="section.icon" />
+                </template>
+              </v-list-item>
+            </template>
+
+            <template v-else>
+              <v-list-subheader>阵容</v-list-subheader>
+
+              <v-list-item
+                v-for="comp in tft.filteredComps"
+                :key="comp.uid"
+                color="primary"
+                rounded="lg"
+                :title="comp.name"
+                :value="comp.uid"
+                @click="tft.selectComp(comp)"
+              >
+                <template #prepend>
+                  <v-chip
+                    class="ma-2 text-h5 font-weight-bold"
+                    :color="tft.tierColor(comp.tierLevel)"
+                    variant="text"
+                  >
+                    {{ comp.tierName }}
+                  </v-chip>
+                </template>
+
+                <template #append>
+                  <v-tooltip location="left">
+                    <template #activator="{ props }">
+                      <v-icon
+                        v-bind="props"
+                        class="cursor-pointer"
+                        :color="
+                          tft.copiedKey === comp.code ? 'success' : undefined
+                        "
+                        :icon="
+                          tft.copiedKey === comp.code
+                            ? 'mdi-check'
+                            : 'mdi-content-copy'
+                        "
+                        @click.stop="tft.handleCopy(comp.code)"
+                      />
+                    </template>
+                    <span>{{
+                      tft.copiedKey === comp.code ? '已复制' : '复制阵容码'
+                    }}</span>
+                  </v-tooltip>
+                </template>
+              </v-list-item>
+
+              <v-list-item
+                v-if="tft.filteredComps.length === 0"
+                class="nav-empty"
+                rounded="lg"
+                title="当前赛季暂无阵容"
+              >
+                <v-list-item-subtitle>
+                  可以在设置里的阵容管理中上传新的阵容图。
+                </v-list-item-subtitle>
+              </v-list-item>
+            </template>
           </v-list>
         </div>
       </div>
     </v-navigation-drawer>
 
     <v-app-bar class="px-3 transparent">
+      <v-app-bar-nav-icon @click="tft.drawer = !tft.drawer" />
       <v-spacer />
-      <v-app-bar-title v-if="tft.currentComp">
-        <div class="text-center text-h6 font-weight-bold">
-          <v-chip
-            class="font-weight-bold"
-            :color="tft.tierColor(tft.currentComp.tierLevel)"
-            variant="outlined"
+
+      <v-app-bar-title>
+        <div class="app-title text-center">
+          <div class="text-caption text-medium-emphasis">
+            {{ isSettingsRoute ? '设置中心' : '阵容总览' }}
+          </div>
+
+          <div
+            v-if="!isSettingsRoute && tft.currentComp"
+            class="text-h6 font-weight-bold d-flex align-center justify-center ga-2 flex-wrap"
           >
-            {{ tft.currentComp.tierName }}
-          </v-chip>
-          {{ tft.currentComp.name }}
+            <v-chip
+              class="font-weight-bold"
+              :color="tft.tierColor(tft.currentComp.tierLevel)"
+              variant="outlined"
+            >
+              {{ tft.currentComp.tierName }}
+            </v-chip>
+            <span>{{ tft.currentComp.name }}</span>
+          </div>
+
+          <div v-else class="text-h6 font-weight-bold">
+            {{ appBarTitle }}
+          </div>
         </div>
       </v-app-bar-title>
+
       <v-spacer />
 
       <div class="season-switcher mr-3">
@@ -105,16 +155,16 @@
           flat
           hide-details
           :items="tft.seasonOptions"
-          label="赛季"
           :loading="tft.seasonLoading"
           :model-value="tft.season"
+          placeholder="赛季"
           rounded="lg"
           variant="solo-filled"
           @update:model-value="handleSeasonChange"
         />
       </div>
 
-      <v-menu v-model="menuOpen" scrim width="200">
+      <v-menu v-model="menuOpen" scrim width="220">
         <template #activator="{ props }">
           <v-btn icon v-bind="props">
             <v-avatar>
@@ -126,13 +176,26 @@
         <v-card rounded="lg" variant="tonal">
           <v-list class="pa-2" nav>
             <v-list-item
+              v-if="isSettingsRoute"
               color="primary"
               rounded="lg"
-              title="Settings"
-              @click="goSettings"
+              title="返回阵容"
+              @click="goHome"
             >
               <template #prepend>
-                <v-icon>mdi-cog</v-icon>
+                <v-icon>mdi-view-grid-outline</v-icon>
+              </template>
+            </v-list-item>
+
+            <v-list-item
+              v-else
+              color="primary"
+              rounded="lg"
+              title="设置中心"
+              @click="goSettings()"
+            >
+              <template #prepend>
+                <v-icon>mdi-cog-outline</v-icon>
               </template>
             </v-list-item>
           </v-list>
@@ -147,26 +210,54 @@
 </template>
 
 <script setup>
-  import { onMounted, ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { computed, onMounted, ref } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  import {
+    getSettingsSection,
+    normalizeSettingsSection,
+    SETTINGS_SECTIONS,
+  } from '@/constants/settings'
   import { useTftStore } from '@/stores/tft'
 
+  const route = useRoute()
   const router = useRouter()
   const tft = useTftStore()
 
   const menuOpen = ref(false)
 
+  const isSettingsRoute = computed(() => route.path.startsWith('/settings'))
+  const currentSettingsSection = computed(() =>
+    getSettingsSection(route.query.section),
+  )
+  const appBarTitle = computed(() => {
+    if (isSettingsRoute.value) {
+      return currentSettingsSection.value.title
+    }
+
+    return tft.currentComp?.name || '阵容'
+  })
+
   onMounted(async () => {
     await tft.initializeSeason()
   })
 
-  function goSettings () {
+  function goSettings (section = normalizeSettingsSection(route.query.section)) {
     menuOpen.value = false
-    router.push('/settings')
+    router.push({
+      path: '/settings',
+      query: {
+        section: normalizeSettingsSection(section),
+      },
+    })
+  }
+
+  function goHome () {
+    menuOpen.value = false
+    router.push('/')
   }
 
   async function handleSeasonChange (nextSeason) {
-    if (!nextSeason) return
+    if (!nextSeason || nextSeason === tft.season) return
     await tft.changeSeason(nextSeason)
   }
 </script>
@@ -200,6 +291,11 @@
   scrollbar-width: thin;
 }
 
+.nav-empty {
+  margin: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .app-root {
   height: 100vh;
   overflow: hidden;
@@ -208,6 +304,10 @@
 .main-root {
   height: calc(100vh - 64px);
   overflow: hidden;
+}
+
+.app-title {
+  line-height: 1.2;
 }
 
 .season-switcher {
