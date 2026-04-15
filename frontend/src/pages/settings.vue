@@ -59,11 +59,18 @@
 
 @media (max-width: 960px) {
   .settings-page {
+    padding: 16px !important;
     overflow-y: auto;
   }
 
   .settings-page__content {
     min-height: unset;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-page {
+    padding: 12px !important;
   }
 }
 </style>

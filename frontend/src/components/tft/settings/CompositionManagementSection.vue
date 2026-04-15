@@ -91,4 +91,14 @@
   flex: 1;
   min-height: 0;
 }
+
+@media (max-width: 960px) {
+  .composition-section {
+    min-height: unset;
+  }
+
+  .composition-board {
+    min-height: unset;
+  }
+}
 </style>

@@ -474,12 +474,33 @@
 }
 
 @media (max-width: 640px) {
+  .season-board {
+    min-height: unset;
+  }
+
   .season-list {
     grid-template-columns: 1fr;
   }
 
   .season-card__preview {
     min-height: 112px;
+  }
+
+  .season-summary__actions,
+  .season-card__actions,
+  .season-card__background-actions {
+    width: 100%;
+  }
+
+  .season-summary__actions > *,
+  .season-card__actions > *,
+  .season-card__background-actions > * {
+    flex: 1 1 0;
+  }
+
+  .season-card__preview-meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
