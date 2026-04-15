@@ -200,4 +200,19 @@
 .drag-chosen {
   outline: 2px dashed rgba(255, 255, 255, 0.35);
 }
+
+@media (max-width: 960px) {
+  .tier-card {
+    min-height: 360px;
+  }
+
+  .tier-body {
+    max-height: min(60dvh, 32rem);
+  }
+
+  .drop-zone {
+    min-height: calc(100% - 24px);
+    padding-bottom: 48px;
+  }
+}
 </style>

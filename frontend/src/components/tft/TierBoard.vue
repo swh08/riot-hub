@@ -175,4 +175,14 @@
   height: 100%;
   min-height: 0;
 }
+
+@media (max-width: 960px) {
+  .tier-board-row {
+    flex: initial;
+  }
+
+  .h-100 {
+    height: auto;
+  }
+}
 </style>
