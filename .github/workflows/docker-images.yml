@@ -5,8 +5,6 @@ on:
     branches:
       - main
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -67,10 +65,8 @@ jobs:
         with:
           images: ${{ steps.image.outputs.value }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
+            type=raw,value=latest
             type=ref,event=tag
-            type=sha,prefix=sha-
 
       - name: Build and optionally push ${{ matrix.name }}
         uses: docker/build-push-action@v6
