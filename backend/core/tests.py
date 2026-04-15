@@ -5,6 +5,7 @@ from django.test import SimpleTestCase
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
+from core.models import Season, TeamComposition
 from core.views import SeasonViewSet, TeamCompositionViewSet
 
 
@@ -107,3 +108,39 @@ class TeamCompositionViewSetTests(SimpleTestCase):
 
         get_active_season.assert_called_once_with()
         serializer.save.assert_called_once_with(season=active_season)
+
+
+class TeamCompositionModelTests(SimpleTestCase):
+    @patch("django.db.models.Model.delete")
+    def test_delete_removes_related_image_file(self, model_delete):
+        storage = MagicMock()
+        comp = TeamComposition(
+            season=Season(version="17"),
+            filename="comp.png",
+            comp_code="test-comp",
+            tier_level=0,
+            tier_display="S",
+            keywords=["test"],
+        )
+        comp.image = SimpleNamespace(name="season/17/comp.png", storage=storage)
+
+        comp.delete()
+
+        model_delete.assert_called_once_with()
+        storage.delete.assert_called_once_with("season/17/comp.png")
+
+    @patch("django.db.models.Model.delete")
+    def test_delete_skips_storage_when_image_is_missing(self, model_delete):
+        comp = TeamComposition(
+            season=Season(version="17"),
+            filename="comp.png",
+            comp_code="test-comp",
+            tier_level=0,
+            tier_display="S",
+            keywords=["test"],
+        )
+        comp.image = None
+
+        comp.delete()
+
+        model_delete.assert_called_once_with()

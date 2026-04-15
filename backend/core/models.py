@@ -50,3 +50,12 @@ class TeamComposition(models.Model):
         if not self.filename and self.image:
             self.filename = self.image.name.rsplit("/", 1)[-1]
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        storage = self.image.storage if self.image else None
+        image_name = self.image.name if self.image else ""
+
+        super().delete(*args, **kwargs)
+
+        if storage and image_name:
+            storage.delete(image_name)
