@@ -1,5 +1,5 @@
 <template>
-  <v-app class="app-root">
+  <v-app class="app-root" :style="appBackgroundStyle">
     <v-navigation-drawer
       v-model="tft.drawer"
       class="nav-drawer transparent"
@@ -229,6 +229,11 @@
   const currentSettingsSection = computed(() =>
     getSettingsSection(route.query.section),
   )
+  const appBackgroundStyle = computed(() => ({
+    '--app-background-image': tft.currentSeasonBackground
+      ? `url("${tft.currentSeasonBackground}")`
+      : 'none',
+  }))
   const appBarTitle = computed(() => {
     if (isSettingsRoute.value) {
       return currentSettingsSection.value.title
@@ -271,7 +276,7 @@
       rgba(0, 0, 0, 0.45) 70%,
       rgba(0, 0, 0, 0.75) 100%
     ),
-    url("@/assets/background.webp") center / cover no-repeat fixed;
+    var(--app-background-image) center / cover no-repeat fixed;
 }
 
 .nav-drawer :deep(.v-navigation-drawer__content) {

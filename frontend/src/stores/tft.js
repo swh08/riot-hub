@@ -3,6 +3,37 @@ import { computed, ref } from 'vue'
 import * as tftApi from '@/api/comp'
 import * as seasonApi from '@/api/season'
 
+const SEASON_BACKGROUND_STORAGE_KEY = 'riot-hub:season-backgrounds'
+
+function loadSeasonBackgrounds () {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SEASON_BACKGROUND_STORAGE_KEY)
+    if (!raw) {
+      return {}
+    }
+
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function persistSeasonBackgrounds (backgrounds) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(
+    SEASON_BACKGROUND_STORAGE_KEY,
+    JSON.stringify(backgrounds),
+  )
+}
+
 export const useTftStore = defineStore('tft', () => {
   const drawer = ref(true)
   const search = ref('')
@@ -12,6 +43,7 @@ export const useTftStore = defineStore('tft', () => {
   const seasonLoading = ref(false)
   const seasonError = ref('')
   const initialized = ref(false)
+  const seasonBackgrounds = ref(loadSeasonBackgrounds())
 
   const comps = ref([])
   const currentUid = ref(null)
@@ -97,6 +129,10 @@ export const useTftStore = defineStore('tft', () => {
 
   const activeSeasonRecord = computed(() => {
     return seasons.value.find(item => item.version === activeSeason.value) || null
+  })
+
+  const currentSeasonBackground = computed(() => {
+    return seasonBackgrounds.value[season.value] || ''
   })
 
   const filteredComps = computed(() => {
@@ -325,6 +361,40 @@ export const useTftStore = defineStore('tft', () => {
     }
   }
 
+  function getSeasonBackground (version) {
+    return seasonBackgrounds.value[String(version ?? '').trim()] || ''
+  }
+
+  function hasCustomSeasonBackground (version) {
+    const normalized = String(version ?? '').trim()
+    return Boolean(normalized && seasonBackgrounds.value[normalized])
+  }
+
+  function setSeasonBackground (version, image) {
+    const normalized = String(version ?? '').trim()
+    if (!normalized || !image) {
+      return
+    }
+
+    seasonBackgrounds.value = {
+      ...seasonBackgrounds.value,
+      [normalized]: image,
+    }
+    persistSeasonBackgrounds(seasonBackgrounds.value)
+  }
+
+  function clearSeasonBackground (version) {
+    const normalized = String(version ?? '').trim()
+    if (!normalized || !seasonBackgrounds.value[normalized]) {
+      return
+    }
+
+    const nextBackgrounds = { ...seasonBackgrounds.value }
+    delete nextBackgrounds[normalized]
+    seasonBackgrounds.value = nextBackgrounds
+    persistSeasonBackgrounds(seasonBackgrounds.value)
+  }
+
   return {
     drawer,
     search,
@@ -336,6 +406,7 @@ export const useTftStore = defineStore('tft', () => {
     seasonOptions,
     selectedSeasonRecord,
     activeSeasonRecord,
+    currentSeasonBackground,
     comps,
     currentUid,
     currentComp,
@@ -355,5 +426,9 @@ export const useTftStore = defineStore('tft', () => {
     selectComp,
     handleCopy,
     tierColor,
+    getSeasonBackground,
+    hasCustomSeasonBackground,
+    setSeasonBackground,
+    clearSeasonBackground,
   }
 })
