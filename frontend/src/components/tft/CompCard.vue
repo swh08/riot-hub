@@ -20,6 +20,17 @@
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
+
+      <v-btn
+        class="no-drag"
+        color="error"
+        icon
+        size="small"
+        variant="text"
+        @click.stop="$emit('delete', comp)"
+      >
+        <v-icon>mdi-delete</v-icon>
+      </v-btn>
     </v-card-title>
 
     <v-card-subtitle class="text-caption mb-2">
@@ -47,7 +58,7 @@
     comp: { type: Object, required: true },
   })
 
-  defineEmits(['edit'])
+  defineEmits(['edit', 'delete'])
 
   const displayName = computed(() => (props.comp?.name || '').split('.')[0])
 </script>

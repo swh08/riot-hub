@@ -32,7 +32,7 @@
         @change="$emit('change', $event)"
       >
         <template #item="{ element }">
-          <CompCard :comp="element" @edit="openEdit" />
+          <CompCard :comp="element" @delete="openDelete" @edit="openEdit" />
         </template>
       </Draggable>
 
@@ -41,6 +41,46 @@
   </v-card>
 
   <CompEditDialog v-model="edit.open" :comp="edit.comp" @save="saveEdit" />
+
+  <v-dialog v-model="remove.open" max-width="440">
+    <v-card rounded="lg">
+      <v-card-title class="text-h6 font-weight-bold">
+        删除阵容
+      </v-card-title>
+
+      <v-card-text>
+        确认删除
+        <strong>{{ remove.comp?.name || remove.comp?.code || '该阵容' }}</strong>
+        吗？相关图片文件也会一起删除，且无法恢复。
+      </v-card-text>
+
+      <v-alert
+        v-if="remove.error"
+        class="mx-6 mb-4"
+        density="compact"
+        type="error"
+      >
+        {{ remove.error }}
+      </v-alert>
+
+      <v-divider />
+
+      <v-card-actions class="pa-4">
+        <v-spacer />
+        <v-btn :disabled="remove.loading" variant="text" @click="closeDelete">
+          取消
+        </v-btn>
+        <v-btn
+          color="error"
+          :loading="remove.loading"
+          variant="flat"
+          @click="confirmDelete"
+        >
+          删除
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -63,13 +103,50 @@
     comp: null,
   })
 
+  const remove = reactive({
+    open: false,
+    error: '',
+    loading: false,
+    comp: null,
+  })
+
   function openEdit (comp) {
     edit.comp = comp
     edit.open = true
   }
 
+  function openDelete (comp) {
+    remove.error = ''
+    remove.comp = comp
+    remove.open = true
+  }
+
+  function closeDelete () {
+    if (remove.loading) return
+    remove.open = false
+    remove.error = ''
+    remove.comp = null
+  }
+
   async function saveEdit ({ uid, comp_code, keywords }) {
     await tft.patchComp(uid, { comp_code, keywords })
+  }
+
+  async function confirmDelete () {
+    if (!remove.comp?.uid) return
+
+    remove.loading = true
+    try {
+      await tft.deleteComp(remove.comp.uid)
+      remove.loading = false
+      closeDelete()
+      return
+    } catch (error) {
+      remove.error
+        = error?.response?.data?.detail || error?.message || '删除阵容失败'
+    } finally {
+      remove.loading = false
+    }
   }
 </script>
 

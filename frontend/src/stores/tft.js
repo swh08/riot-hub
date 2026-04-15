@@ -286,6 +286,15 @@ export const useTftStore = defineStore('tft', () => {
     return data
   }
 
+  async function deleteComp (uid) {
+    await tftApi.deleteComp(uid)
+    comps.value = comps.value.filter(comp => comp.uid !== uid)
+
+    if (currentUid.value === uid) {
+      currentUid.value = null
+    }
+  }
+
   async function handleCopy (code) {
     await navigator.clipboard.writeText(code)
     copiedKey.value = code
@@ -342,6 +351,7 @@ export const useTftStore = defineStore('tft', () => {
     ensureSelectedSeasonIsActive,
     loadComps,
     patchComp,
+    deleteComp,
     selectComp,
     handleCopy,
     tierColor,

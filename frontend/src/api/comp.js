@@ -23,6 +23,10 @@ export async function patchComp (uid, payload) {
   return res.data
 }
 
+export async function deleteComp (uid) {
+  await http.delete(`/images/${uid}/`)
+}
+
 export async function uploadComp ({
   file,
   comp_code,
