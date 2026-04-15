@@ -4,7 +4,8 @@
       v-model="tft.drawer"
       class="nav-drawer transparent"
       elevation="10"
-      persistent
+      :persistent="!isMobile"
+      :temporary="isMobile"
     >
       <div class="nav-inner">
         <div class="pa-3">
@@ -116,13 +117,13 @@
       </div>
     </v-navigation-drawer>
 
-    <v-app-bar class="px-3 transparent">
+    <v-app-bar class="app-bar px-3 transparent">
       <v-app-bar-nav-icon @click="tft.drawer = !tft.drawer" />
-      <v-spacer />
+      <v-spacer v-if="!isMobile" />
 
-      <v-app-bar-title>
+      <v-app-bar-title class="toolbar-title">
         <div class="app-title text-center">
-          <div class="text-caption text-medium-emphasis">
+          <div class="app-title__caption text-caption text-medium-emphasis">
             {{ isSettingsRoute ? '设置中心' : '阵容总览' }}
           </div>
 
@@ -146,7 +147,7 @@
         </div>
       </v-app-bar-title>
 
-      <v-spacer />
+      <v-spacer v-if="!isMobile" />
 
       <div class="season-switcher mr-3">
         <v-select
@@ -210,8 +211,9 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useDisplay } from 'vuetify'
   import {
     getSettingsSection,
     normalizeSettingsSection,
@@ -222,18 +224,25 @@
   const route = useRoute()
   const router = useRouter()
   const tft = useTftStore()
+  const { smAndDown } = useDisplay()
 
   const menuOpen = ref(false)
 
+  const isMobile = computed(() => smAndDown.value)
   const isSettingsRoute = computed(() => route.path.startsWith('/settings'))
   const currentSettingsSection = computed(() =>
     getSettingsSection(route.query.section),
   )
-  const appBackgroundStyle = computed(() => ({
-    '--app-background-image': tft.currentSeasonBackground
-      ? `url("${tft.currentSeasonBackground}")`
-      : 'none',
-  }))
+  const appBackgroundStyle = computed(() => {
+    const appBarHeight = isMobile.value ? '96px' : '64px'
+
+    return {
+      '--app-background-image': tft.currentSeasonBackground
+        ? `url("${tft.currentSeasonBackground}")`
+        : 'none',
+      '--app-bar-height': appBarHeight,
+    }
+  })
   const appBarTitle = computed(() => {
     if (isSettingsRoute.value) {
       return currentSettingsSection.value.title
@@ -245,6 +254,23 @@
   onMounted(async () => {
     await tft.initializeSeason()
   })
+
+  watch(
+    () => route.fullPath,
+    () => {
+      if (isMobile.value) {
+        tft.drawer = false
+      }
+    },
+  )
+
+  watch(
+    isMobile,
+    mobile => {
+      tft.drawer = !mobile
+    },
+    { immediate: true },
+  )
 
   function goSettings (section = normalizeSettingsSection(route.query.section)) {
     menuOpen.value = false
@@ -302,20 +328,67 @@
 }
 
 .app-root {
-  height: 100vh;
+  height: 100dvh;
+  min-height: 100svh;
   overflow: hidden;
 }
 
 .main-root {
-  height: calc(100vh - 64px);
+  height: calc(100dvh - var(--app-bar-height));
+  min-height: 0;
   overflow: hidden;
 }
 
 .app-title {
   line-height: 1.2;
+  min-width: 0;
+}
+
+.toolbar-title {
+  min-width: 0;
 }
 
 .season-switcher {
   width: min(220px, 32vw);
+}
+
+@media (max-width: 600px) {
+  .app-root {
+    overflow: auto;
+  }
+
+  .main-root {
+    height: auto;
+    min-height: calc(100dvh - var(--app-bar-height));
+    overflow: auto;
+  }
+
+  .season-switcher {
+    width: min(132px, 34vw);
+    min-width: 108px;
+    margin-right: 8px !important;
+  }
+
+  .app-bar {
+    padding-inline: 8px !important;
+  }
+
+  .toolbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-inline: 8px 6px;
+  }
+
+  .app-title {
+    text-align: left !important;
+  }
+
+  .app-title__caption {
+    display: none;
+  }
+
+  .app-title :deep(.text-h6) {
+    font-size: 1rem !important;
+  }
 }
 </style>
