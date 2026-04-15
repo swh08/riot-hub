@@ -12,7 +12,9 @@ Image names published by the workflow:
 Publish behavior:
 
 - Pull requests only build-check the images and do not push
-- Pushing a tag like `v1.2.3` publishes two tags for each image:
+- Pushing to `main` automatically creates the next version tag using patch increments
+- Versioning starts at `v0.1.0` when the repository has no prior `v*` tags
+- Example: if the latest git tag is `v1.2.3`, the next release becomes `v1.2.4`
+- Each release publishes two tags for each image:
   - `latest`
-  - `v1.2.3`
-- Manual runs also publish using the selected Git ref
+  - the new version tag, for example `v1.2.4`
