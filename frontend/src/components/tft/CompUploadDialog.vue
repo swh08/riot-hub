@@ -21,6 +21,7 @@
           v-model="form.files"
           accept="image/*"
           class="mt-4"
+          density="compact"
           :disabled="saving"
           label="选择图片（可多选）"
           multiple
@@ -33,6 +34,7 @@
         <v-text-field
           v-model="form.compCode"
           class="mt-3"
+          density="compact"
           :disabled="saving"
           label="阵容码"
           variant="outlined"
@@ -41,6 +43,7 @@
         <v-select
           v-model="form.tierName"
           class="mt-3"
+          density="compact"
           :disabled="saving"
           :items="['S', 'A', 'B']"
           label="强度"

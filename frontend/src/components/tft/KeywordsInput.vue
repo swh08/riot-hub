@@ -3,6 +3,7 @@
     <div class="d-flex align-center">
       <v-text-field
         v-model="keywordInput"
+        density="compact"
         :disabled="disabled"
         hide-details
         :label="label"
@@ -14,6 +15,7 @@
         class="ml-2"
         :disabled="disabled || !keywordInput.trim()"
         icon
+        size="small"
         variant="outlined"
         @click="add"
       >

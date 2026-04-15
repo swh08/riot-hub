@@ -15,6 +15,7 @@
         <v-text-field
           v-model="form.compCode"
           class="no-drag"
+          density="compact"
           :disabled="saving"
           hide-details
           label="阵容码"
