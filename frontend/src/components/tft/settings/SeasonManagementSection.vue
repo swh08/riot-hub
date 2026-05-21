@@ -154,7 +154,7 @@
             </div>
 
             <div class="text-caption text-medium-emphasis">
-              支持 JPG / PNG / WebP，建议单张不超过 2 MB。
+              支持 JPG / PNG / WebP，建议单张不超过 10 MB。
             </div>
           </v-card-text>
         </v-card>
@@ -167,7 +167,7 @@
   import { computed, ref } from 'vue'
   import { useTftStore } from '@/stores/tft'
 
-  const MAX_BACKGROUND_SIZE = 2 * 1024 * 1024
+  const MAX_BACKGROUND_SIZE = 10 * 1024 * 1024
 
   const tft = useTftStore()
 
@@ -267,7 +267,7 @@
       }
 
       if (file.size > MAX_BACKGROUND_SIZE) {
-        throw new Error('背景图不能超过 2 MB')
+        throw new Error('背景图不能超过 10 MB')
       }
 
       uploadingBackground.value = version
