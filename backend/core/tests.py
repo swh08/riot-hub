@@ -1,12 +1,24 @@
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, override_settings
 from rest_framework.request import Request
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from core.models import Season, TeamComposition
 from core.views import SeasonViewSet, TeamCompositionViewSet
+
+
+SMALL_GIF = (
+    b"GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00\xff\xff\xff,"
+    b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+)
+
+
+def uploaded_image(name="comp.gif"):
+    return SimpleUploadedFile(name, SMALL_GIF, content_type="image/gif")
 
 
 class SeasonViewSetTests(SimpleTestCase):
@@ -144,3 +156,113 @@ class TeamCompositionModelTests(SimpleTestCase):
         comp.delete()
 
         model_delete.assert_called_once_with()
+
+
+class TeamCompositionAPITests(APITestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_dir.name)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.media_dir.cleanup)
+
+    def test_composition_management_flow_uses_active_and_requested_seasons(self):
+        season_16_response = self.client.post(
+            "/api/seasons/", {"version": "16"}, format="json"
+        )
+        season_17_response = self.client.post(
+            "/api/seasons/", {"version": "17"}, format="json"
+        )
+        self.assertEqual(season_16_response.status_code, 201)
+        self.assertEqual(season_17_response.status_code, 201)
+
+        activate_response = self.client.post(
+            f"/api/seasons/{season_16_response.data['uid']}/set_active/"
+        )
+        self.assertEqual(activate_response.status_code, 200)
+        self.assertTrue(activate_response.data["is_active"])
+
+        upload_response = self.client.post(
+            "/api/images/",
+            {
+                "image": uploaded_image("duelist.gif"),
+                "comp_code": "SET16-DUELIST",
+                "tier_level": 0,
+                "tier_display": "S",
+                "keywords": ["fast 8", "reroll"],
+            },
+            format="multipart",
+        )
+        self.assertEqual(upload_response.status_code, 201)
+        self.assertEqual(upload_response.data["filename"], "duelist.gif")
+        self.assertEqual(upload_response.data["comp_code"], "SET16-DUELIST")
+        self.assertEqual(upload_response.data["tier_level"], 0)
+
+        list_response = self.client.get("/api/images/", {"season": "16"})
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(list_response.data[0]["filename"], "duelist.gif")
+
+        empty_season_response = self.client.get("/api/images/", {"season": "17"})
+        self.assertEqual(empty_season_response.status_code, 200)
+        self.assertEqual(empty_season_response.data, [])
+
+        comp_uid = upload_response.data["uid"]
+        patch_response = self.client.patch(
+            f"/api/images/{comp_uid}/",
+            {
+                "comp_code": "SET16-DUELIST-V2",
+                "tier_level": 1,
+                "tier_display": "A",
+                "keywords": ["tempo"],
+            },
+            format="json",
+        )
+        self.assertEqual(patch_response.status_code, 200)
+        self.assertEqual(patch_response.data["comp_code"], "SET16-DUELIST-V2")
+        self.assertEqual(patch_response.data["tier_level"], 1)
+        self.assertEqual(patch_response.data["keywords"], ["tempo"])
+
+        image_name = TeamComposition.objects.get(uid=comp_uid).image.name
+        storage = TeamComposition.objects.get(uid=comp_uid).image.storage
+        self.assertTrue(storage.exists(image_name))
+
+        delete_response = self.client.delete(f"/api/images/{comp_uid}/")
+        self.assertEqual(delete_response.status_code, 204)
+        self.assertFalse(TeamComposition.objects.filter(uid=comp_uid).exists())
+        self.assertFalse(storage.exists(image_name))
+
+    def test_same_filename_and_code_can_be_reused_in_different_seasons(self):
+        season_16 = Season.objects.create(version="16", is_active=True)
+        season_17 = Season.objects.create(version="17", is_active=False)
+
+        first_response = self.client.post(
+            "/api/images/",
+            {
+                "image": uploaded_image("shared.gif"),
+                "comp_code": "SHARED-CODE",
+                "tier_level": 0,
+                "tier_display": "S",
+                "keywords": [],
+            },
+            format="multipart",
+        )
+        self.assertEqual(first_response.status_code, 201)
+        self.assertEqual(first_response.data["season"], str(season_16.uid))
+
+        self.client.post(f"/api/seasons/{season_17.uid}/set_active/")
+        second_response = self.client.post(
+            "/api/images/",
+            {
+                "image": uploaded_image("shared.gif"),
+                "comp_code": "SHARED-CODE",
+                "tier_level": 1,
+                "tier_display": "A",
+                "keywords": [],
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(second_response.status_code, 201)
+        self.assertEqual(second_response.data["season"], str(season_17.uid))
+        self.assertEqual(TeamComposition.objects.count(), 2)
