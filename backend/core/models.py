@@ -42,7 +42,8 @@ class TeamComposition(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["filename", "comp_code"], name="uniq_comp_code_per_season"
+                fields=["season", "filename", "comp_code"],
+                name="uniq_comp_filename_code_per_season",
             ),
         ]
 
