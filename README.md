@@ -178,6 +178,7 @@ Published image names:
 Publishing behavior:
 
 - Pull requests only build-check the images and do not push them.
+- Documentation-only changes skip Docker builds and publishing when every changed file matches `*.md`, `*.mdx`, `docs/*`, `LICENSE`, or `LICENSE.*`.
 - Pushes to `main` automatically create the next patch version tag.
 - Versioning starts at `v0.1.0` when the repository has no prior `v*` tags.
 - If the latest git tag is `v1.2.3`, the next release becomes `v1.2.4`.
