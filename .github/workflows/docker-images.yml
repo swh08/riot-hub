@@ -49,7 +49,12 @@ jobs:
             exit 0
           fi
 
-          files="$(git diff --name-only "$base" "$head")"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            files="$(git diff --name-only "$base"..."$head")"
+          else
+            files="$(git diff --name-only "$base" "$head")"
+          fi
+
           if [ -z "$files" ]; then
             echo "should_build=false" >> "$GITHUB_OUTPUT"
             exit 0
