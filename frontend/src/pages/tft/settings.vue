@@ -1,6 +1,7 @@
 <route lang="yaml">
 meta:
   layout: tft
+  title: 云顶大学 - 设置中心
 </route>
 
 <template>
