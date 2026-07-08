@@ -158,6 +158,91 @@ class TeamCompositionModelTests(SimpleTestCase):
         model_delete.assert_called_once_with()
 
 
+class SeasonBackgroundAPITests(APITestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_dir.name)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.media_dir.cleanup)
+
+        self.season = Season.objects.create(version="16", is_active=True)
+
+    def upload_background(self, name="bg.gif"):
+        return self.client.post(
+            f"/api/tft/seasons/{self.season.uid}/background/",
+            {"background": uploaded_image(name)},
+            format="multipart",
+        )
+
+    def test_upload_sets_background_and_stores_file(self):
+        response = self.upload_background()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("bg", response.data["background"])
+
+        self.season.refresh_from_db()
+        self.assertTrue(self.season.background)
+        self.assertTrue(
+            self.season.background.storage.exists(self.season.background.name)
+        )
+
+    def test_replacing_background_deletes_previous_file(self):
+        self.upload_background("first.gif")
+        self.season.refresh_from_db()
+        old_name = self.season.background.name
+        storage = self.season.background.storage
+
+        response = self.upload_background("second.gif")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(storage.exists(old_name))
+
+        self.season.refresh_from_db()
+        self.assertIn("second", self.season.background.name)
+        self.assertTrue(storage.exists(self.season.background.name))
+
+    def test_delete_clears_background_and_removes_file(self):
+        self.upload_background()
+        self.season.refresh_from_db()
+        old_name = self.season.background.name
+        storage = self.season.background.storage
+
+        response = self.client.delete(
+            f"/api/tft/seasons/{self.season.uid}/background/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["background"])
+        self.assertFalse(storage.exists(old_name))
+
+        self.season.refresh_from_db()
+        self.assertFalse(self.season.background)
+
+    def test_upload_rejects_non_image_file(self):
+        response = self.client.post(
+            f"/api/tft/seasons/{self.season.uid}/background/",
+            {
+                "background": SimpleUploadedFile(
+                    "not-image.txt", b"plain text", content_type="text/plain"
+                )
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_background_included_in_season_list(self):
+        self.upload_background()
+
+        response = self.client.get("/api/tft/seasons/")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.data[0] if isinstance(response.data, list) else None
+        self.assertIsNotNone(payload)
+        self.assertTrue(payload["background"])
+
+
 class TeamCompositionAPITests(APITestCase):
     def setUp(self):
         self.media_dir = tempfile.TemporaryDirectory()

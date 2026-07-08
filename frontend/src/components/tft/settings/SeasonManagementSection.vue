@@ -153,6 +153,7 @@
 
               <v-btn
                 :disabled="seasonBusy || !tft.hasCustomSeasonBackground(item.version)"
+                :loading="clearingBackground === item.version"
                 size="small"
                 variant="text"
                 @click="resetSeasonBackground(item.version)"
@@ -184,13 +185,15 @@
   const creatingSeason = ref(false)
   const activatingSeason = ref('')
   const uploadingBackground = ref('')
+  const clearingBackground = ref('')
   const backgroundInputRefs = ref({})
 
   const seasonBusy = computed(
     () =>
       creatingSeason.value
       || Boolean(activatingSeason.value)
-      || Boolean(uploadingBackground.value),
+      || Boolean(uploadingBackground.value)
+      || Boolean(clearingBackground.value),
   )
 
   async function refreshSeasons () {
@@ -279,10 +282,13 @@
       }
 
       uploadingBackground.value = version
-      const image = await readFileAsDataUrl(file)
-      tft.setSeasonBackground(version, image)
+      await tft.setSeasonBackground(version, file)
     } catch (error) {
-      seasonError.value = error?.message || '设置背景图失败'
+      seasonError.value
+        = error?.response?.data?.background?.[0]
+          || error?.response?.data?.detail
+          || error?.message
+          || '设置背景图失败'
     } finally {
       uploadingBackground.value = ''
       if (event?.target) {
@@ -291,9 +297,20 @@
     }
   }
 
-  function resetSeasonBackground (version) {
+  async function resetSeasonBackground (version) {
     seasonError.value = ''
-    tft.clearSeasonBackground(version)
+    clearingBackground.value = version
+
+    try {
+      await tft.clearSeasonBackground(version)
+    } catch (error) {
+      seasonError.value
+        = error?.response?.data?.detail
+          || error?.message
+          || '恢复默认背景失败'
+    } finally {
+      clearingBackground.value = ''
+    }
   }
 
   function getBackgroundPreviewStyle (version) {
@@ -302,17 +319,6 @@
     return {
       '--season-preview-image': background ? `url("${background}")` : 'none',
     }
-  }
-
-  function readFileAsDataUrl (file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-
-      reader.addEventListener('load', () => resolve(String(reader.result || '')))
-      reader.addEventListener('error', () => reject(new Error('读取背景图失败')))
-
-      reader.readAsDataURL(file)
-    })
   }
 
   function formatDate (value) {

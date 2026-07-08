@@ -3,15 +3,32 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 
+def season_background_upload_to(instance, filename: str) -> str:
+    return f"season/{instance.version}/background/{filename}"
+
+
 class Season(models.Model):
     uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     version = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=False)
 
+    background = models.ImageField(
+        upload_to=season_background_upload_to, blank=True, null=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.version}{' (active)' if self.is_active else ''}"
+
+    def delete(self, *args, **kwargs):
+        storage = self.background.storage if self.background else None
+        background_name = self.background.name if self.background else ""
+
+        super().delete(*args, **kwargs)
+
+        if storage and background_name:
+            storage.delete(background_name)
 
 
 def upload_to(instance, filename: str) -> str:

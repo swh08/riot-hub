@@ -20,3 +20,16 @@ export async function setActiveSeason (uid) {
   const res = await http.post(`/tft/seasons/${uid}/set_active/`)
   return res.data
 }
+
+export async function uploadSeasonBackground (uid, file) {
+  const formData = new FormData()
+  formData.append('background', file)
+
+  const res = await http.post(`/tft/seasons/${uid}/background/`, formData)
+  return res.data
+}
+
+export async function deleteSeasonBackground (uid) {
+  const res = await http.delete(`/tft/seasons/${uid}/background/`)
+  return res.data
+}

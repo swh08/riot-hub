@@ -3,7 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Season, TeamComposition
-from .serializers import SeasonSerializer, TeamCompositionSerializer
+from .serializers import (
+    SeasonBackgroundSerializer,
+    SeasonSerializer,
+    TeamCompositionSerializer,
+)
 from .services import get_active_season
 
 
@@ -15,6 +19,29 @@ class SeasonViewSet(viewsets.ModelViewSet):
     def current(self, request):
         season = get_active_season()
         return Response(self.get_serializer(season).data)
+
+    @action(detail=True, methods=["post", "delete"])
+    def background(self, request, pk=None):
+        season = self.get_object()
+
+        if request.method == "DELETE":
+            self._delete_background_file(season)
+            season.background = None
+            season.save(update_fields=["background"])
+            return Response(self.get_serializer(season).data)
+
+        upload = SeasonBackgroundSerializer(data=request.data)
+        upload.is_valid(raise_exception=True)
+
+        self._delete_background_file(season)
+        season.background = upload.validated_data["background"]
+        season.save(update_fields=["background"])
+        return Response(self.get_serializer(season).data)
+
+    @staticmethod
+    def _delete_background_file(season):
+        if season.background:
+            season.background.storage.delete(season.background.name)
 
     @action(detail=True, methods=["post"])
     def set_active(self, request, pk=None):

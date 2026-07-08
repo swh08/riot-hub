@@ -3,35 +3,10 @@ import { computed, ref } from 'vue'
 import * as tftApi from '@/api/comp'
 import * as seasonApi from '@/api/season'
 
-const SEASON_BACKGROUND_STORAGE_KEY = 'riot-hub:season-backgrounds'
-
-function loadSeasonBackgrounds () {
-  if (typeof window === 'undefined') {
-    return {}
-  }
-
-  try {
-    const raw = window.localStorage.getItem(SEASON_BACKGROUND_STORAGE_KEY)
-    if (!raw) {
-      return {}
-    }
-
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
-}
-
-function persistSeasonBackgrounds (backgrounds) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(
-    SEASON_BACKGROUND_STORAGE_KEY,
-    JSON.stringify(backgrounds),
-  )
+// Season backgrounds used to live in localStorage as data URLs; they are
+// stored on the backend now, so drop the stale (potentially huge) entry.
+if (typeof window !== 'undefined') {
+  window.localStorage.removeItem('riot-hub:season-backgrounds')
 }
 
 export const useTftStore = defineStore('tft', () => {
@@ -43,7 +18,6 @@ export const useTftStore = defineStore('tft', () => {
   const seasonLoading = ref(false)
   const seasonError = ref('')
   const initialized = ref(false)
-  const seasonBackgrounds = ref(loadSeasonBackgrounds())
 
   const comps = ref([])
   const currentUid = ref(null)
@@ -87,6 +61,7 @@ export const useTftStore = defineStore('tft', () => {
       uid: item.uid,
       version: String(item.version ?? ''),
       isActive: Boolean(item.is_active),
+      background: item.background || '',
       createdAt: item.created_at,
       title: `赛季 ${item.version}`,
       value: String(item.version ?? ''),
@@ -132,7 +107,7 @@ export const useTftStore = defineStore('tft', () => {
   })
 
   const currentSeasonBackground = computed(() => {
-    return seasonBackgrounds.value[season.value] || ''
+    return selectedSeasonRecord.value?.background || ''
   })
 
   const filteredComps = computed(() => {
@@ -361,38 +336,45 @@ export const useTftStore = defineStore('tft', () => {
     }
   }
 
+  function findSeasonRecord (version) {
+    const normalized = String(version ?? '').trim()
+    return seasons.value.find(item => item.version === normalized) || null
+  }
+
   function getSeasonBackground (version) {
-    return seasonBackgrounds.value[String(version ?? '').trim()] || ''
+    return findSeasonRecord(version)?.background || ''
   }
 
   function hasCustomSeasonBackground (version) {
-    const normalized = String(version ?? '').trim()
-    return Boolean(normalized && seasonBackgrounds.value[normalized])
+    return Boolean(findSeasonRecord(version)?.background)
   }
 
-  function setSeasonBackground (version, image) {
-    const normalized = String(version ?? '').trim()
-    if (!normalized || !image) {
+  function applySeasonData (record, data) {
+    record.background = data.background || ''
+    record.isActive = Boolean(data.is_active)
+    record.raw = data
+  }
+
+  async function setSeasonBackground (version, file) {
+    const record = findSeasonRecord(version)
+    if (!record || !file) {
       return
     }
 
-    seasonBackgrounds.value = {
-      ...seasonBackgrounds.value,
-      [normalized]: image,
-    }
-    persistSeasonBackgrounds(seasonBackgrounds.value)
+    const data = await seasonApi.uploadSeasonBackground(record.uid, file)
+    applySeasonData(record, data)
+    return data
   }
 
-  function clearSeasonBackground (version) {
-    const normalized = String(version ?? '').trim()
-    if (!normalized || !seasonBackgrounds.value[normalized]) {
+  async function clearSeasonBackground (version) {
+    const record = findSeasonRecord(version)
+    if (!record || !record.background) {
       return
     }
 
-    const nextBackgrounds = { ...seasonBackgrounds.value }
-    delete nextBackgrounds[normalized]
-    seasonBackgrounds.value = nextBackgrounds
-    persistSeasonBackgrounds(seasonBackgrounds.value)
+    const data = await seasonApi.deleteSeasonBackground(record.uid)
+    applySeasonData(record, data)
+    return data
   }
 
   return {
