@@ -376,12 +376,11 @@
 
 .season-card {
   height: fit-content;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .season-card:hover {
   border-color: rgba(255, 255, 255, 0.16);
-  transform: translateY(-2px);
 }
 
 .season-card__title {
