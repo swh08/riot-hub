@@ -1,5 +1,5 @@
 <template>
-  <div class="hub-page">
+  <div class="hub-page" :style="hubStyle">
     <v-container class="hub-container py-12">
       <div class="hub-brand text-center mb-12">
         <v-img
@@ -33,6 +33,21 @@
 <script setup>
   import GameCard from '@/components/hub/GameCard.vue'
   import { GAMES } from '@/constants/games'
+
+  // Every image dropped into assets/hub-backgrounds/ automatically
+  // joins the random rotation; no code changes needed.
+  const backgrounds = Object.values(
+    import.meta.glob('@/assets/hub-backgrounds/*', {
+      eager: true,
+      import: 'default',
+    }),
+  )
+
+  const background = backgrounds[Math.floor(Math.random() * backgrounds.length)]
+
+  const hubStyle = {
+    '--hub-background-image': background ? `url("${background}")` : 'none',
+  }
 </script>
 
 <style scoped>
@@ -47,7 +62,7 @@
       rgba(0, 0, 0, 0.65) 70%,
       rgba(0, 0, 0, 0.85) 100%
     ),
-    url('@/assets/background.webp') center / cover no-repeat fixed;
+    var(--hub-background-image) center / cover no-repeat fixed;
 }
 
 .hub-container {
