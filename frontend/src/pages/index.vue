@@ -10,7 +10,7 @@
             src="@/assets/brand/riot-hub-logo.png"
           />
         </h1>
-        <p class="text-subtitle-1 text-medium-emphasis mt-5">
+        <p class="hub-brand__subtitle text-subtitle-1 mt-5">
           选择一个游戏开始
         </p>
       </div>
@@ -71,6 +71,15 @@
 
 .hub-brand__title {
   max-width: 280px;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5));
+  filter:
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 8px 28px rgba(0, 0, 0, 0.65));
+}
+
+.hub-brand__subtitle {
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 4px 14px rgba(0, 0, 0, 0.7);
 }
 </style>
