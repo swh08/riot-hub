@@ -3,8 +3,16 @@
     <v-card class="transparent" rounded="lg" variant="flat">
       <v-card-text class="season-summary">
         <div class="season-summary__top">
-          <div class="text-body-2 text-medium-emphasis">
-            创建新赛季、切换当前浏览赛季，并为每个赛季设置单独的背景图。
+          <div>
+            <div class="d-flex align-center ga-2">
+              <v-icon color="primary" size="20">
+                mdi-calendar-multiselect-outline
+              </v-icon>
+              <span class="text-subtitle-1 font-weight-bold">赛季管理</span>
+            </div>
+            <div class="text-body-2 text-medium-emphasis mt-1">
+              创建新赛季、切换当前浏览赛季，并为每个赛季设置单独的背景图。
+            </div>
           </div>
 
           <div class="season-summary__form">
@@ -368,6 +376,12 @@
 
 .season-card {
   height: fit-content;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.season-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
 }
 
 .season-card__title {

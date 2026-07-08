@@ -1,12 +1,21 @@
 <template>
-  <v-card class="tier-card transparent" rounded="lg">
-    <v-card-title class="tier-header d-flex align-center my-2">
-      <v-chip class="text-h6 font-weight-bold">{{ title }}</v-chip>
+  <v-card class="tier-card transparent" rounded="lg" :style="columnStyle">
+    <v-card-title class="tier-header d-flex align-center py-3">
+      <v-chip
+        class="tier-header__label text-h6 font-weight-bold"
+        :color="tierColor"
+        variant="tonal"
+      >
+        {{ title }}
+      </v-chip>
+      <span class="tier-header__caption text-caption ml-3">
+        {{ tierCaption }}
+      </span>
       <v-spacer />
-      <v-chip variant="outlined">{{ items.length }}</v-chip>
+      <v-chip size="small" variant="outlined">{{ items.length }}</v-chip>
     </v-card-title>
 
-    <v-divider />
+    <v-divider class="tier-header__divider" />
 
     <v-card-text class="tier-body">
       <Draggable
@@ -84,15 +93,27 @@
 </template>
 
 <script setup>
-  import { reactive } from 'vue'
+  import { computed, reactive } from 'vue'
   import Draggable from 'vuedraggable'
   import { useTftStore } from '@/stores/tft'
 
-  defineProps({
+  const props = defineProps({
     title: { type: String, required: true },
     items: { type: Array, required: true },
     group: { type: String, default: 'tiers' },
   })
+
+  const TIER_META = {
+    S: { color: '#ff4655', caption: '版本答案' },
+    A: { color: '#ffa94d', caption: '强势可玩' },
+    B: { color: '#ffd43b', caption: '过渡备选' },
+  }
+
+  const tierColor = computed(() => TIER_META[props.title]?.color || '#9aa4b2')
+  const tierCaption = computed(() => TIER_META[props.title]?.caption || '')
+  const columnStyle = computed(() => ({
+    '--tier-color': tierColor.value,
+  }))
 
   defineEmits(['change'])
 
@@ -155,6 +176,30 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tier-colored top edge */
+.tier-card::before {
+  content: '';
+  flex: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--tier-color),
+    color-mix(in srgb, var(--tier-color) 20%, transparent)
+  );
+  opacity: 0.9;
+}
+
+.tier-header__caption {
+  color: color-mix(in srgb, var(--tier-color) 75%, white);
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.tier-header__divider {
+  opacity: 0.06;
 }
 
 .tier-body {
@@ -179,9 +224,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
+  opacity: 0.6;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  border: 1px dashed color-mix(in srgb, var(--tier-color) 45%, rgba(255, 255, 255, 0.2));
   border-radius: 12px;
+  background: color-mix(in srgb, var(--tier-color) 4%, transparent);
   pointer-events: none;
 }
 

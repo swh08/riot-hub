@@ -7,16 +7,34 @@
     >
       <v-card-text class="composition-toolbar__body">
         <div>
-          <div class="text-body-2 text-medium-emphasis">
-            上传阵容图、调整强度分级，并随时刷新当前赛季的数据。
+          <div class="d-flex align-center ga-2">
+            <v-icon color="primary" size="20">mdi-view-grid-outline</v-icon>
+            <span class="text-subtitle-1 font-weight-bold">阵容管理</span>
+            <v-chip v-if="tft.season" color="primary" size="x-small" variant="tonal">
+              赛季 {{ tft.season }}
+            </v-chip>
+          </div>
+          <div class="text-body-2 text-medium-emphasis mt-1">
+            上传阵容图、拖拽调整强度分级，改动会立即保存。
           </div>
         </div>
 
         <div class="composition-toolbar__actions">
-          <v-btn :loading="loading" @click="reload">刷新</v-btn>
+          <v-btn
+            :loading="loading"
+            prepend-icon="mdi-refresh"
+            variant="text"
+            @click="reload"
+          >
+            刷新
+          </v-btn>
 
-          <v-btn color="primary" variant="flat" @click="uploadOpen = true">
-            <v-icon class="mr-2">mdi-upload</v-icon>
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-upload"
+            variant="flat"
+            @click="uploadOpen = true"
+          >
             上传阵容
           </v-btn>
 

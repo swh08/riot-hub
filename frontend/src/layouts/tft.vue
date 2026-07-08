@@ -1,5 +1,5 @@
 <template>
-  <v-app class="app-root" :style="appBackgroundStyle">
+  <v-app class="app-root" :style="appBackgroundStyle" theme="tft">
     <v-navigation-drawer
       v-model="tft.drawer"
       class="nav-drawer transparent"
@@ -354,7 +354,19 @@
       rgba(0, 0, 0, 0.45) 70%,
       rgba(0, 0, 0, 0.75) 100%
     ),
-    var(--app-background-image) center / cover no-repeat fixed;
+    var(--app-background-image) center / cover no-repeat fixed,
+    linear-gradient(180deg, #0c1018, #080b12);
+}
+
+.app-bar {
+  background: rgba(10, 13, 20, 0.62) !important;
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none !important;
+}
+
+.nav-drawer {
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 .nav-drawer :deep(.v-navigation-drawer__content) {
