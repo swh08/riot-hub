@@ -15,6 +15,7 @@ declare module 'vue' {
     CompEditDialog: typeof import('./src/components/tft/CompEditDialog.vue')['default']
     CompositionManagementSection: typeof import('./src/components/tft/settings/CompositionManagementSection.vue')['default']
     CompUploadDialog: typeof import('./src/components/tft/CompUploadDialog.vue')['default']
+    GameCard: typeof import('./src/components/hub/GameCard.vue')['default']
     InboxView: typeof import('./src/components/tft/InboxView.vue')['default']
     KeywordsInput: typeof import('./src/components/tft/KeywordsInput.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

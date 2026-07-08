@@ -1,3 +1,8 @@
+<route lang="yaml">
+meta:
+  layout: tft
+</route>
+
 <template>
   <div class="settings-page pa-4">
     <component :is="currentSectionComponent" class="settings-page__content" />
@@ -31,7 +36,7 @@
 
       if (value !== normalized) {
         router.replace({
-          path: '/settings',
+          path: '/tft/settings',
           query: {
             ...route.query,
             section: normalized,

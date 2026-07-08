@@ -13,18 +13,18 @@ export async function listComps ({ season } = {}) {
     params.season = season
   }
 
-  const res = await http.get('/images/', { params })
+  const res = await http.get('/tft/images/', { params })
   const data = res.data
   return Array.isArray(data) ? data : (data?.results ?? [])
 }
 
 export async function patchComp (uid, payload) {
-  const res = await http.patch(`/images/${uid}/`, payload)
+  const res = await http.patch(`/tft/images/${uid}/`, payload)
   return res.data
 }
 
 export async function deleteComp (uid) {
-  await http.delete(`/images/${uid}/`)
+  await http.delete(`/tft/images/${uid}/`)
 }
 
 export async function uploadComp ({
@@ -43,7 +43,7 @@ export async function uploadComp ({
     fd.append('keywords', kw)
   }
 
-  const res = await http.post('/images/', fd, {
+  const res = await http.post('/tft/images/', fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
   return res.data
@@ -70,7 +70,7 @@ export async function uploadImage (file, payload = {}) {
     }
   }
 
-  const res = await http.post('/images/', form, {
+  const res = await http.post('/tft/images/', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
   return res.data
