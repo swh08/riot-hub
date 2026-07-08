@@ -7,8 +7,8 @@ from django.test import SimpleTestCase, override_settings
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory, APITestCase
 
-from core.models import Season, TeamComposition
-from core.views import SeasonViewSet, TeamCompositionViewSet
+from tft.models import Season, TeamComposition
+from tft.views import SeasonViewSet, TeamCompositionViewSet
 
 
 SMALL_GIF = (
@@ -25,13 +25,13 @@ class SeasonViewSetTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    @patch("core.views.get_active_season")
+    @patch("tft.views.get_active_season")
     def test_current_returns_active_season_data(self, get_active_season):
         season = SimpleNamespace(uid="season-16", version="16", is_active=True)
         get_active_season.return_value = season
 
         view = SeasonViewSet()
-        view.request = Request(self.factory.get("/api/seasons/current/"))
+        view.request = Request(self.factory.get("/api/tft/seasons/current/"))
         view.format_kwarg = None
         view.get_serializer = MagicMock(
             return_value=SimpleNamespace(data={"uid": "season-16", "version": "16"})
@@ -44,7 +44,7 @@ class SeasonViewSetTests(SimpleTestCase):
         get_active_season.assert_called_once_with()
         view.get_serializer.assert_called_once_with(season)
 
-    @patch("core.views.Season.objects.update")
+    @patch("tft.views.Season.objects.update")
     def test_set_active_deactivates_others_and_updates_target(self, update_all):
         season = SimpleNamespace(
             uid="season-17",
@@ -55,7 +55,7 @@ class SeasonViewSetTests(SimpleTestCase):
 
         view = SeasonViewSet()
         view.request = Request(
-            self.factory.post("/api/seasons/season-17/set_active/")
+            self.factory.post("/api/tft/seasons/season-17/set_active/")
         )
         view.format_kwarg = None
         view.get_object = MagicMock(return_value=season)
@@ -76,21 +76,21 @@ class TeamCompositionViewSetTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    @patch("core.views.TeamComposition.objects.select_related")
+    @patch("tft.views.TeamComposition.objects.select_related")
     def test_get_queryset_filters_by_requested_season(self, select_related):
         ordered = MagicMock()
         select_related.return_value.order_by.return_value = ordered
 
         view = TeamCompositionViewSet()
-        view.request = Request(self.factory.get("/api/images/", {"season": "17"}))
+        view.request = Request(self.factory.get("/api/tft/images/", {"season": "17"}))
 
         queryset = view.get_queryset()
 
         ordered.filter.assert_called_once_with(season__version="17")
         self.assertEqual(queryset, ordered.filter.return_value)
 
-    @patch("core.views.get_active_season")
-    @patch("core.views.TeamComposition.objects.select_related")
+    @patch("tft.views.get_active_season")
+    @patch("tft.views.TeamComposition.objects.select_related")
     def test_get_queryset_defaults_to_active_season(
         self, select_related, get_active_season
     ):
@@ -100,7 +100,7 @@ class TeamCompositionViewSetTests(SimpleTestCase):
         get_active_season.return_value = active_season
 
         view = TeamCompositionViewSet()
-        view.request = Request(self.factory.get("/api/images/"))
+        view.request = Request(self.factory.get("/api/tft/images/"))
 
         queryset = view.get_queryset()
 
@@ -108,7 +108,7 @@ class TeamCompositionViewSetTests(SimpleTestCase):
         ordered.filter.assert_called_once_with(season=active_season)
         self.assertEqual(queryset, ordered.filter.return_value)
 
-    @patch("core.views.get_active_season")
+    @patch("tft.views.get_active_season")
     def test_perform_create_saves_with_active_season(self, get_active_season):
         active_season = SimpleNamespace(uid="season-16", version="16")
         serializer = MagicMock()
@@ -168,22 +168,22 @@ class TeamCompositionAPITests(APITestCase):
 
     def test_composition_management_flow_uses_active_and_requested_seasons(self):
         season_16_response = self.client.post(
-            "/api/seasons/", {"version": "16"}, format="json"
+            "/api/tft/seasons/", {"version": "16"}, format="json"
         )
         season_17_response = self.client.post(
-            "/api/seasons/", {"version": "17"}, format="json"
+            "/api/tft/seasons/", {"version": "17"}, format="json"
         )
         self.assertEqual(season_16_response.status_code, 201)
         self.assertEqual(season_17_response.status_code, 201)
 
         activate_response = self.client.post(
-            f"/api/seasons/{season_16_response.data['uid']}/set_active/"
+            f"/api/tft/seasons/{season_16_response.data['uid']}/set_active/"
         )
         self.assertEqual(activate_response.status_code, 200)
         self.assertTrue(activate_response.data["is_active"])
 
         upload_response = self.client.post(
-            "/api/images/",
+            "/api/tft/images/",
             {
                 "image": uploaded_image("duelist.gif"),
                 "comp_code": "SET16-DUELIST",
@@ -198,18 +198,18 @@ class TeamCompositionAPITests(APITestCase):
         self.assertEqual(upload_response.data["comp_code"], "SET16-DUELIST")
         self.assertEqual(upload_response.data["tier_level"], 0)
 
-        list_response = self.client.get("/api/images/", {"season": "16"})
+        list_response = self.client.get("/api/tft/images/", {"season": "16"})
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual(len(list_response.data), 1)
         self.assertEqual(list_response.data[0]["filename"], "duelist.gif")
 
-        empty_season_response = self.client.get("/api/images/", {"season": "17"})
+        empty_season_response = self.client.get("/api/tft/images/", {"season": "17"})
         self.assertEqual(empty_season_response.status_code, 200)
         self.assertEqual(empty_season_response.data, [])
 
         comp_uid = upload_response.data["uid"]
         patch_response = self.client.patch(
-            f"/api/images/{comp_uid}/",
+            f"/api/tft/images/{comp_uid}/",
             {
                 "comp_code": "SET16-DUELIST-V2",
                 "tier_level": 1,
@@ -227,7 +227,7 @@ class TeamCompositionAPITests(APITestCase):
         storage = TeamComposition.objects.get(uid=comp_uid).image.storage
         self.assertTrue(storage.exists(image_name))
 
-        delete_response = self.client.delete(f"/api/images/{comp_uid}/")
+        delete_response = self.client.delete(f"/api/tft/images/{comp_uid}/")
         self.assertEqual(delete_response.status_code, 204)
         self.assertFalse(TeamComposition.objects.filter(uid=comp_uid).exists())
         self.assertFalse(storage.exists(image_name))
@@ -237,7 +237,7 @@ class TeamCompositionAPITests(APITestCase):
         season_17 = Season.objects.create(version="17", is_active=False)
 
         first_response = self.client.post(
-            "/api/images/",
+            "/api/tft/images/",
             {
                 "image": uploaded_image("shared.gif"),
                 "comp_code": "SHARED-CODE",
@@ -248,11 +248,11 @@ class TeamCompositionAPITests(APITestCase):
             format="multipart",
         )
         self.assertEqual(first_response.status_code, 201)
-        self.assertEqual(first_response.data["season"], str(season_16.uid))
+        self.assertEqual(str(first_response.data["season"]), str(season_16.uid))
 
-        self.client.post(f"/api/seasons/{season_17.uid}/set_active/")
+        self.client.post(f"/api/tft/seasons/{season_17.uid}/set_active/")
         second_response = self.client.post(
-            "/api/images/",
+            "/api/tft/images/",
             {
                 "image": uploaded_image("shared.gif"),
                 "comp_code": "SHARED-CODE",
@@ -264,5 +264,5 @@ class TeamCompositionAPITests(APITestCase):
         )
 
         self.assertEqual(second_response.status_code, 201)
-        self.assertEqual(second_response.data["season"], str(season_17.uid))
+        self.assertEqual(str(second_response.data["season"]), str(season_17.uid))
         self.assertEqual(TeamComposition.objects.count(), 2)
