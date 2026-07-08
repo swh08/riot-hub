@@ -1,40 +1,52 @@
-# Riot Hub
+<div align="center">
 
-Riot Hub is a multi-game content management hub for Riot Games titles, built as a Vue 3 + Vuetify frontend with a Django backend. The app opens on a game selection hub; Teamfight Tactics is currently supported (season management, composition upload and editing, tier organization, quick composition-code copying, and a responsive image viewer), while League of Legends and VALORANT are planned.
+<img src="frontend/src/assets/brand/riot-hub-logo.png" alt="Riot Hub" width="300" />
 
-## Features
+### A self-hosted content hub for Riot Games titles
 
-- Hub landing page with game cards: TFT is enabled, LOL / VALORANT show as coming soon.
-- Season-aware TFT composition browsing with a global season selector.
-- Searchable side navigation for composition names and custom keywords.
-- Large image viewer for the currently selected composition.
-- Composition management page with upload, refresh, edit, delete, and drag-and-drop tier updates.
-- S / A / B tier board powered by `vuedraggable`, with tier changes persisted through the backend API.
-- Season management page for creating seasons, switching the viewed season, setting the active season, and uploading a custom background image per season (stored on the backend and shared across devices).
-- One-click copy for composition codes.
-- Responsive Vuetify layout that adapts the drawer, toolbar, and management views for desktop and mobile screens.
+Manage Teamfight Tactics seasons and team compositions today —<br/>
+League of Legends and VALORANT modules are on the roadmap.
 
-## Tech Stack
+<p>
+  <img alt="Vue 3" src="https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white" />
+  <img alt="Vuetify 3" src="https://img.shields.io/badge/Vuetify-3-1867c0?logo=vuetify&logoColor=white" />
+  <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white" />
+  <img alt="Django 5" src="https://img.shields.io/badge/Django-5-092e20?logo=django&logoColor=white" />
+  <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-4169e1?logo=postgresql&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white" />
+</p>
 
-- Vue 3 with `<script setup>`
-- Vite 7
-- Vuetify 3
-- Pinia
-- Vue Router with file-based auto routes
-- Axios
-- Sass
-- `vuedraggable` for tier-board drag and drop
-- ESLint with Vuetify configuration
+**English** | [简体中文](docs/README.zh-CN.md)
+
+</div>
+
+---
+
+## Overview
+
+Riot Hub opens on a game selection page and routes each title into its own module. Teamfight Tactics is fully supported: season management, composition upload and editing, S/A/B tier organization, one-click composition codes, per-season background images, and a responsive image viewer. League of Legends and VALORANT appear as planned cards.
+
+## Highlights
+
+- **Hub landing page** with game cards — swipeable stacked cards with smooth gestures on mobile, a grid on desktop.
+- **Season-aware browsing** with a global season selector in the toolbar.
+- **Searchable navigation** across composition names and custom keywords.
+- **Tier board** (S / A / B) powered by drag-and-drop; changes persist through the backend API.
+- **Composition management** — upload, edit metadata, delete, refresh, one-click code copy.
+- **Season management** — create seasons, switch the viewed season, set the active season, and upload a custom background image per season (stored on the backend, shared across devices).
+- **Responsive layout** that adapts the drawer, toolbar, and management views from desktop to mobile.
 
 ## Architecture
 
-Riot Hub is a modular monolith: one frontend image, one backend image, one database, deployed with a single `docker-compose.yml`. Games are isolated by directory and namespace instead of by service:
+Riot Hub is a **modular monolith**: one frontend image, one backend image, one database, deployed with a single `docker-compose.yml`. Games are isolated by directory and namespace instead of by service:
 
 - Every game uses a three-letter id (`tft`, `lol`, `val`) across frontend routes (`/tft`), API prefixes (`/api/tft/`), Django apps, and database table prefixes (`tft_*`).
 - Game modules never import each other, and models never reference another game's models. Shared code, if ever needed, goes into a dedicated `common` layer that games depend on one-way.
 - Adding a game means creating a Django app mounted at `/api/<game>/`, a `pages/<game>/` route tree with its own layout, store, and components, and enabling its card in `src/constants/games.js`. No compose, nginx, or CI changes are required.
 
-## Project Structure
+See [docs/hub-refactor-architecture.md](docs/hub-refactor-architecture.md) for the full design document.
+
+### Project Structure
 
 ```text
 riot-hub/
@@ -42,7 +54,7 @@ riot-hub/
     src/
       api/                 HTTP clients for backend resources
       components/
-        hub/               Hub game selection cards
+        hub/               Hub game cards and the mobile card stack
         tft/               TFT viewer, cards, dialogs, tier board, and settings UI
       constants/           Shared frontend constants (game cards, settings sections)
       layouts/             default.vue (hub shell) and tft.vue (TFT navigation layout)
@@ -52,22 +64,38 @@ riot-hub/
       plugins/             Vuetify, router, Pinia, and app plugin registration
       stores/              Pinia stores
       styles/              Vuetify and global style settings
-    package.json
-    vite.config.mjs
   backend/
     config/                Django project settings and root URLs
     tft/                   TFT app: seasons and team composition APIs
+  docs/                    Architecture and translated documentation
 ```
 
-## Requirements
+## Quick Start
 
-- Node.js 20 or newer is recommended for Vite 7.
-- npm is the expected package manager because the project includes `package-lock.json`.
-- A compatible backend API should be running locally when you need real data.
+### Docker Compose (production-like)
 
-## Getting Started
+```bash
+cp .env.production.example .env   # then edit secrets and hosts
+docker compose up -d
+```
 
-From the repository root:
+The frontend is served on port `8080`, the backend API on port `8000`, and PostgreSQL data persists under `./data/`.
+
+### Local Development
+
+Requirements: Node.js 20+, Python 3.10+, and a reachable PostgreSQL instance.
+
+Backend:
+
+```bash
+cd backend
+python -m venv .venv && .venv/Scripts/activate   # or source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver 8000
+```
+
+Frontend:
 
 ```bash
 cd frontend
@@ -75,67 +103,52 @@ npm install
 npm run dev
 ```
 
-The Vite dev server runs on `http://localhost:3000`.
+The Vite dev server runs on `http://localhost:3000` and proxies `/api` to `http://localhost:8000`.
 
-## Available Scripts
+### Frontend Scripts
 
-Run these commands from `frontend/`.
+Run from `frontend/`:
 
-```bash
-npm run dev
-```
+| Command           | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `npm run dev`     | Start the Vite dev server with HMR               |
+| `npm run build`   | Build the production bundle into `frontend/dist` |
+| `npm run preview` | Serve the production build locally               |
+| `npm run lint`    | Run ESLint with auto-fix                         |
 
-Starts the Vite development server with hot module replacement.
+## API Reference
 
-```bash
-npm run build
-```
+The frontend uses Axios with `baseURL: '/api'`. All TFT endpoints live under the `/api/tft/` namespace.
 
-Builds the production bundle into `frontend/dist`.
+### Compositions
 
-```bash
-npm run preview
-```
+- `GET /api/tft/images/?season=<version>` — list composition images for a season.
+- `POST /api/tft/images/` — upload a composition image (multipart form data).
+- `PATCH /api/tft/images/:uid/` — update composition metadata such as code, keywords, or tier.
+- `DELETE /api/tft/images/:uid/` — delete a composition image.
 
-Serves the production build locally for verification.
+### Seasons
 
-```bash
-npm run lint
-```
+- `GET /api/tft/seasons/` — list seasons, each including its `background` image URL (or `null`).
+- `POST /api/tft/seasons/` — create a season.
+- `GET /api/tft/seasons/current/` — fetch the active season.
+- `POST /api/tft/seasons/:uid/set_active/` — mark a season as active.
+- `POST /api/tft/seasons/:uid/background/` — upload or replace the season background image (multipart field `background`, max 10 MB).
+- `DELETE /api/tft/seasons/:uid/background/` — remove the season background image and its stored file.
 
-Runs ESLint with auto-fix enabled.
-
-## Backend API Expectations
-
-The frontend uses Axios with `baseURL: '/api'`. During development, Vite proxies `/api` to `http://localhost:8000`. All TFT endpoints live under the `/api/tft/` namespace.
-
-Expected composition endpoints:
-
-- `GET /api/tft/images/?season=<version>`: list composition images for a season.
-- `POST /api/tft/images/`: upload a composition image with multipart form data.
-- `PATCH /api/tft/images/:uid/`: update composition metadata such as code, keywords, or tier.
-- `DELETE /api/tft/images/:uid/`: delete a composition image.
-
-Expected season endpoints:
-
-- `GET /api/tft/seasons/`: list seasons, each including its `background` image URL (or `null`).
-- `POST /api/tft/seasons/`: create a season.
-- `GET /api/tft/seasons/current/`: fetch the active season.
-- `POST /api/tft/seasons/:uid/set_active/`: mark a season as active.
-- `POST /api/tft/seasons/:uid/background/`: upload or replace the season background image (multipart field `background`, max 10 MB).
-- `DELETE /api/tft/seasons/:uid/background/`: remove the season background image and its stored file.
+### Frontend Data Mapping
 
 The frontend maps backend composition records into this internal shape:
 
-- `uid`: unique composition identifier.
-- `filename`: display name source.
-- `comp_code`: composition code copied by users.
-- `tier_level`: numeric tier level, where `0` is S, `1` is A, and `2` is B.
-- `tier_display`: display label for the tier.
-- `keywords`: searchable tags.
-- `image_url` or `image`: image URL used by the viewer.
+- `uid` — unique composition identifier.
+- `filename` — display name source.
+- `comp_code` — composition code copied by users.
+- `tier_level` — numeric tier level, where `0` is S, `1` is A, and `2` is B.
+- `tier_display` — display label for the tier.
+- `keywords` — searchable tags.
+- `image_url` or `image` — image URL used by the viewer.
 
-## Main User Flows
+## User Flow
 
 1. Open the Hub landing page and select TFT to enter the composition manager at `/tft`.
 2. Select a season from the toolbar.
@@ -145,22 +158,22 @@ The frontend maps backend composition records into this internal shape:
 6. Open Settings > Season Management to create seasons, switch the viewed season, activate a season, or upload a season background image.
 7. Use the toolbar menu's "Back to Hub" entry to return to the game selection page.
 
-## Future Roadmap
-
-The Hub landing page and per-game namespacing are in place. Planned expansion areas include:
-
-- League of Legends support for champion builds, matchup notes, rune pages, item sets, and strategy references.
-- VALORANT support for agent lineups, map notes, utility setups, team compositions, and tactical resources.
-- Reusable upload, search, tagging, and organization tools across TFT, League of Legends, and VALORANT content.
-
 ## Frontend Notes
 
 - Routes are generated from `src/pages/**/*.vue` through `unplugin-vue-router`.
 - Layouts are applied through `vite-plugin-vue-layouts-next`: the Hub page uses the minimal `default` layout, TFT pages declare `layout: tft` in their route blocks.
+- Page titles come from `meta.title` in each page's route block; the router falls back to "Riot Hub".
 - Vuetify components are auto-imported by `vite-plugin-vuetify` and `unplugin-vue-components`.
 - Shared TFT state lives in `src/stores/tft.js`.
-- Custom season backgrounds are uploaded to the backend and stored with the season record, so they are shared across browsers and devices.
-- The current development proxy target is configured in `frontend/vite.config.mjs`.
+- The development proxy target is configured in `frontend/vite.config.mjs`.
+
+## Roadmap
+
+The Hub landing page and per-game namespacing are in place. Planned expansion areas:
+
+- **League of Legends** — champion builds, matchup notes, rune pages, item sets, and strategy references.
+- **VALORANT** — agent lineups, map notes, utility setups, team compositions, and tactical resources.
+- Reusable upload, search, tagging, and organization tools shared across game modules.
 
 ## Troubleshooting
 
@@ -171,246 +184,25 @@ The Hub landing page and per-game namespacing are in place. Planned expansion ar
 
 ## Deployment
 
-Build the frontend with:
+Build the frontend with `npm run build` and deploy `frontend/dist` behind a web server, or use the provided Docker images. In production, make sure `/api` is routed to the backend service.
 
-```bash
-cd frontend
-npm run build
-```
+### Docker Publishing (CI)
 
-Deploy the generated `frontend/dist` directory behind a web server. In production, make sure `/api` is routed to the backend service or replace the Axios base URL / proxy strategy to match your deployment environment.
+The GitHub workflow expects the following repository configuration:
 
-### Docker Publishing
+- `DOCKERHUB_USERNAME` secret — Docker Hub login username.
+- `DOCKERHUB_TOKEN` secret — Docker Hub access token.
+- Optional `DOCKERHUB_NAMESPACE` repository variable — namespace or organization for published images.
 
-The GitHub workflow expects the following repository configuration for Docker image publishing:
-
-- `DOCKERHUB_USERNAME` secret: Docker Hub login username.
-- `DOCKERHUB_TOKEN` secret: Docker Hub access token.
-- Optional `DOCKERHUB_NAMESPACE` repository variable: namespace or organization for published images.
-
-Published image names:
-
-- `${DOCKERHUB_NAMESPACE}/riot-hub-backend`
-- `${DOCKERHUB_NAMESPACE}/riot-hub-frontend`
+Published images: `${DOCKERHUB_NAMESPACE}/riot-hub-backend` and `${DOCKERHUB_NAMESPACE}/riot-hub-frontend`.
 
 Publishing behavior:
 
 - Pull requests only build-check the images and do not push them.
-- Documentation-only changes skip Docker builds and publishing when every changed file matches `*.md`, `*.mdx`, `docs/*`, `LICENSE`, or `LICENSE.*`.
-- Pushes to `main` automatically create the next patch version tag.
-- Versioning starts at `v0.1.0` when the repository has no prior `v*` tags.
-- If the latest git tag is `v1.2.3`, the next release becomes `v1.2.4`.
-- Each release publishes `latest` and the new version tag, such as `v1.2.4`, for each image.
+- Documentation-only changes (`*.md`, `*.mdx`, `docs/*`, `LICENSE`, `LICENSE.*`) skip Docker builds and publishing.
+- Pushes to `main` automatically create the next patch version tag, starting at `v0.1.0` when no prior `v*` tag exists.
+- Each release publishes `latest` plus the new version tag for each image.
 
 ## License
 
 No license file is currently included in this repository. Add one before publishing or distributing the project.
-
----
-
-# Riot Hub 中文说明
-
-Riot Hub 是一个面向 Riot Games 的多游戏内容管理 Hub，前端基于 Vue 3 和 Vuetify，后端基于 Django。应用打开后首先是游戏选择页；当前支持云顶之弈（赛季管理、阵容上传与编辑、强度分级、阵容码复制、大图预览），英雄联盟和无畏契约在规划中。
-
-## 功能特性
-
-- Hub 游戏选择首页：TFT 可进入，LOL / VALORANT 显示为敬请期待。
-- 按赛季浏览 TFT 阵容，顶部提供全局赛季选择器。
-- 侧边栏支持按阵容名称和关键词搜索。
-- 中央区域展示当前选中阵容的大图。
-- 阵容管理页面支持上传、刷新、编辑、删除和拖拽调整强度。
-- S / A / B 强度看板基于 `vuedraggable` 实现，拖拽后的强度变更会提交到后端。
-- 赛季管理页面支持创建赛季、切换查看赛季、设置激活赛季，并为每个赛季上传自定义背景图（保存在后端，跨设备共享）。
-- 支持一键复制阵容码。
-- Vuetify 响应式布局，适配桌面端和移动端。
-
-## 技术栈
-
-- Vue 3 与 `<script setup>`
-- Vite 7
-- Vuetify 3
-- Pinia
-- Vue Router 文件路由
-- Axios
-- Sass
-- `vuedraggable`
-- ESLint 与 Vuetify 配置
-
-## 架构说明
-
-Riot Hub 采用模块化单体架构：单前端镜像 + 单后端镜像 + 单数据库，一个 `docker-compose.yml` 一条命令部署。游戏之间靠目录和命名空间隔离，而不是拆分服务：
-
-- 每个游戏使用三字母标识（`tft`、`lol`、`val`），贯穿前端路由（`/tft`）、API 前缀（`/api/tft/`）、Django app 和数据库表前缀（`tft_*`）。
-- 游戏模块之间禁止互相 import，model 之间禁止跨游戏外键。若确有共享需求，建立单向依赖的 `common` 层。
-- 新增游戏的标准动作：创建挂在 `/api/<game>/` 下的 Django app，建立 `pages/<game>/` 路由树及配套布局、store、组件，并在 `src/constants/games.js` 中启用对应卡片。无需修改 compose、nginx 或 CI。
-
-## 项目结构
-
-```text
-riot-hub/
-  frontend/
-    src/
-      api/                 后端接口封装
-      components/
-        hub/               Hub 游戏选择卡片
-        tft/               TFT 查看、卡片、弹窗、强度看板和设置组件
-      constants/           前端共享常量（游戏卡片、设置分区）
-      layouts/             default.vue（Hub 极简壳）与 tft.vue（TFT 导航布局）
-      pages/
-        index.vue          Hub 游戏选择页
-        tft/               TFT 路由（/tft、/tft/settings）
-      plugins/             Vuetify、Router、Pinia 等插件注册
-      stores/              Pinia 状态管理
-      styles/              Vuetify 与全局样式配置
-    package.json
-    vite.config.mjs
-  backend/
-    config/                Django 项目配置与根路由
-    tft/                   TFT app：赛季与阵容 API
-```
-
-## 环境要求
-
-- 推荐使用 Node.js 20 或更新版本。
-- 项目包含 `package-lock.json`，建议使用 npm。
-- 如需加载真实数据，需要本地启动兼容的后端 API。
-
-## 快速开始
-
-从仓库根目录执行：
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-开发服务器地址为 `http://localhost:3000`。
-
-## 可用脚本
-
-以下命令均在 `frontend/` 目录执行。
-
-```bash
-npm run dev
-```
-
-启动 Vite 开发服务器，支持热更新。
-
-```bash
-npm run build
-```
-
-构建生产版本，输出到 `frontend/dist`。
-
-```bash
-npm run preview
-```
-
-本地预览生产构建结果。
-
-```bash
-npm run lint
-```
-
-运行 ESLint，并启用自动修复。
-
-## 后端 API 约定
-
-前端 Axios 使用 `baseURL: '/api'`。开发环境中，Vite 会将 `/api` 代理到 `http://localhost:8000`。所有 TFT 接口都位于 `/api/tft/` 命名空间下。
-
-阵容相关接口：
-
-- `GET /api/tft/images/?season=<version>`：获取指定赛季的阵容图片列表。
-- `POST /api/tft/images/`：使用 multipart form data 上传阵容图片。
-- `PATCH /api/tft/images/:uid/`：更新阵容码、关键词或强度等元数据。
-- `DELETE /api/tft/images/:uid/`：删除阵容图片。
-
-赛季相关接口：
-
-- `GET /api/tft/seasons/`：获取赛季列表，每条记录包含 `background` 背景图 URL（无背景时为 `null`）。
-- `POST /api/tft/seasons/`：创建赛季。
-- `GET /api/tft/seasons/current/`：获取当前激活赛季。
-- `POST /api/tft/seasons/:uid/set_active/`：设置激活赛季。
-- `POST /api/tft/seasons/:uid/background/`：上传或替换赛季背景图（multipart 字段 `background`，最大 10 MB）。
-- `DELETE /api/tft/seasons/:uid/background/`：删除赛季背景图及其存储文件。
-
-前端会将后端阵容记录映射为以下内部字段：
-
-- `uid`：阵容唯一标识。
-- `filename`：显示名称来源。
-- `comp_code`：用户复制的阵容码。
-- `tier_level`：数字强度等级，`0` 为 S，`1` 为 A，`2` 为 B。
-- `tier_display`：强度展示名称。
-- `keywords`：可搜索关键词。
-- `image_url` 或 `image`：用于展示的图片地址。
-
-## 主要使用流程
-
-1. 打开 Hub 游戏选择页，点击 TFT 卡片进入 `/tft` 阵容管理。
-2. 在顶部栏选择需要查看的赛季。
-3. 在侧边栏浏览阵容，按名称或关键词搜索，并点击阵容查看大图。
-4. 需要时在侧边栏一键复制阵容码。
-5. 进入设置中心的阵容管理，上传图片、编辑信息、删除阵容、刷新数据，或将卡片拖拽到不同强度栏。
-6. 进入设置中心的赛季管理，创建赛季、切换查看赛季、设置激活赛季，或上传赛季背景图。
-7. 通过顶部菜单的「返回 Hub」回到游戏选择页。
-
-## 未来路线图
-
-Hub 游戏选择页和按游戏划分的命名空间已经就绪。计划扩展方向包括：
-
-- 支持 League of Legends，用于管理英雄出装、对位笔记、符文页、装备方案和策略资料。
-- 支持 VALORANT，用于管理特工点位、地图笔记、技能道具布置、阵容搭配和战术资料。
-- 将上传、搜索、标签和内容整理能力复用于 TFT、League of Legends 和 VALORANT。
-
-## 前端说明
-
-- 路由由 `src/pages/**/*.vue` 通过 `unplugin-vue-router` 自动生成。
-- 布局由 `vite-plugin-vue-layouts-next` 处理：Hub 页使用极简的 `default` 布局，TFT 页面在 route block 中声明 `layout: tft`。
-- Vuetify 组件通过 `vite-plugin-vuetify` 和 `unplugin-vue-components` 自动导入。
-- TFT 相关共享状态集中在 `src/stores/tft.js`。
-- 自定义赛季背景上传到后端并随赛季记录保存，跨浏览器、跨设备共享。
-- 开发环境代理配置位于 `frontend/vite.config.mjs`。
-
-## 常见问题
-
-- 如果页面能打开但没有阵容，请确认后端运行在 `http://localhost:8000`，并且 `/api/tft/seasons/` 至少返回一个赛季。
-- 如果上传失败，请确认当前已选择有效赛季，且后端支持 `image`、`comp_code`、`tier_level`、`tier_display`、`keywords` 这些 multipart 字段。
-- 如果拖拽调整强度后回滚，请检查 `PATCH /api/tft/images/:uid/` 的响应和后端校验错误。
-- 如果赛季背景没有显示，请检查 `/api/tft/seasons/` 返回的 `background` 字段，并确认对应媒体文件可以通过 `/media/` 访问。
-
-## 部署
-
-构建前端：
-
-```bash
-cd frontend
-npm run build
-```
-
-将生成的 `frontend/dist` 部署到 Web 服务器。生产环境需要确保 `/api` 能正确转发到后端服务，或根据部署方式调整 Axios base URL / 代理策略。
-
-### Docker 发布
-
-GitHub workflow 发布 Docker 镜像时需要以下仓库配置：
-
-- `DOCKERHUB_USERNAME` secret：Docker Hub 登录用户名。
-- `DOCKERHUB_TOKEN` secret：Docker Hub access token。
-- 可选 `DOCKERHUB_NAMESPACE` repository variable：发布镜像使用的命名空间或组织名。
-
-发布的镜像名称：
-
-- `${DOCKERHUB_NAMESPACE}/riot-hub-backend`
-- `${DOCKERHUB_NAMESPACE}/riot-hub-frontend`
-
-发布行为：
-
-- Pull request 只构建检查镜像，不推送。
-- 推送到 `main` 会自动创建下一个 patch 版本标签。
-- 如果仓库没有历史 `v*` 标签，版本从 `v0.1.0` 开始。
-- 如果最新 git 标签是 `v1.2.3`，下一次发布会变为 `v1.2.4`。
-- 每次发布会为每个镜像推送 `latest` 和新的版本标签，例如 `v1.2.4`。
-
-## 许可证
-
-当前仓库暂未包含许可证文件。公开发布或分发前建议补充许可证。
