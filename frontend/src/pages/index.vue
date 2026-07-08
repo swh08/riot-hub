@@ -1,7 +1,7 @@
 <template>
   <div class="hub-page" :style="hubStyle">
     <v-container class="hub-container py-12">
-      <div class="hub-brand text-center mb-12">
+      <div class="hub-brand text-center mb-8 mb-sm-12">
         <h1 class="hub-brand__title mx-auto">
           <v-img
             alt="Riot Hub"
@@ -15,7 +15,9 @@
         </p>
       </div>
 
-      <v-row justify="center">
+      <GameCardStack v-if="isMobile" :games="GAMES" />
+
+      <v-row v-else justify="center">
         <v-col
           v-for="game in GAMES"
           :key="game.id"
@@ -31,8 +33,14 @@
 </template>
 
 <script setup>
+  import { computed } from 'vue'
+  import { useDisplay } from 'vuetify'
   import GameCard from '@/components/hub/GameCard.vue'
+  import GameCardStack from '@/components/hub/GameCardStack.vue'
   import { GAMES } from '@/constants/games'
+
+  const { smAndDown } = useDisplay()
+  const isMobile = computed(() => smAndDown.value)
 
   // Every image dropped into assets/hub-backgrounds/ automatically
   // joins the random rotation; no code changes needed.
@@ -55,6 +63,11 @@
   min-height: 100dvh;
   display: flex;
   align-items: center;
+  /* Cards flung off-screen by the mobile stack would otherwise widen the
+     document and pop in a horizontal scrollbar (jolting the fixed bg).
+     clip (unlike hidden) does not turn the page into a scroll container. */
+  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(
       ellipse at center,
@@ -74,6 +87,12 @@
   filter:
     drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9))
     drop-shadow(0 8px 28px rgba(0, 0, 0, 0.65));
+}
+
+@media (max-width: 600px) {
+  .hub-brand__title {
+    max-width: 190px;
+  }
 }
 
 .hub-brand__subtitle {
