@@ -2,15 +2,15 @@
   <div class="hub-page" :style="hubStyle">
     <v-container class="hub-container py-12">
       <div class="hub-brand text-center mb-12">
-        <v-img
-          class="mx-auto"
-          contain
-          max-height="88"
-          max-width="88"
-          src="@/assets/logo.png"
-        />
-        <h1 class="text-h3 font-weight-bold text-white mt-4">Riot Hub</h1>
-        <p class="text-subtitle-1 text-medium-emphasis mt-2">
+        <h1 class="hub-brand__title mx-auto">
+          <v-img
+            alt="Riot Hub"
+            contain
+            max-width="280"
+            src="@/assets/brand/riot-hub-logo.png"
+          />
+        </h1>
+        <p class="text-subtitle-1 text-medium-emphasis mt-5">
           选择一个游戏开始
         </p>
       </div>
@@ -67,5 +67,10 @@
 
 .hub-container {
   max-width: 1100px;
+}
+
+.hub-brand__title {
+  max-width: 280px;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5));
 }
 </style>
