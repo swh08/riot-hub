@@ -2,56 +2,58 @@
   <v-card
     class="game-card"
     :class="{ 'game-card--disabled': !game.enabled }"
-    :disabled="!game.enabled"
     :ripple="game.enabled"
     rounded="xl"
     :style="cardStyle"
     variant="flat"
     @click="handleClick"
   >
-    <div class="game-card__inner pa-6">
-      <div class="game-card__accent" />
+    <div class="game-card__art">
+      <v-img
+        :alt="game.name"
+        :aspect-ratio="16 / 10"
+        cover
+        :src="game.art"
+      />
 
-      <div class="d-flex align-center justify-space-between">
+      <v-chip
+        class="game-card__badge font-weight-medium"
+        :color="game.color"
+        size="small"
+        :variant="game.enabled ? 'flat' : 'tonal'"
+      >
+        {{ game.enabled ? '已可用' : '规划中' }}
+      </v-chip>
+    </div>
+
+    <div class="game-card__body pa-5">
+      <div class="d-flex align-baseline ga-2">
+        <span class="text-h6 font-weight-bold text-white">
+          {{ game.displayName }}
+        </span>
         <span
-          class="game-card__id text-overline font-weight-bold"
+          class="game-card__tag text-caption font-weight-medium"
           :style="{ color: game.color }"
         >
           {{ game.id.toUpperCase() }}
         </span>
-
-        <v-chip
-          v-if="!game.enabled"
-          class="game-card__badge"
-          color="grey"
-          size="small"
-          variant="tonal"
-        >
-          敬请期待 / Coming Soon
-        </v-chip>
       </div>
 
-      <div class="mt-6">
-        <div class="text-h5 font-weight-bold text-white">
-          {{ game.displayName }}
-        </div>
-        <div class="text-subtitle-2 text-medium-emphasis mt-1">
-          {{ game.name }}
-        </div>
-      </div>
-
-      <div class="game-card__description text-body-2 mt-4">
+      <p class="game-card__description text-body-2 mt-2 mb-0">
         {{ game.description }}
-      </div>
+      </p>
 
-      <div class="d-flex align-center mt-6">
+      <v-divider class="game-card__divider my-4" />
+
+      <div class="game-card__action d-flex align-center justify-space-between">
         <template v-if="game.enabled">
-          <span class="text-button" :style="{ color: game.color }">进入</span>
-          <v-icon class="ml-1" :color="game.color" size="small">
-            mdi-arrow-right
-          </v-icon>
+          <span class="text-body-2 font-weight-medium text-white">进入模块</span>
+          <v-icon color="white" size="small">mdi-arrow-right</v-icon>
         </template>
-        <span v-else class="text-button text-disabled">开发中</span>
+        <template v-else>
+          <span class="text-body-2 text-disabled">敬请期待</span>
+          <v-icon color="grey-darken-1" size="small">mdi-lock-outline</v-icon>
+        </template>
       </div>
     </div>
   </v-card>
@@ -83,43 +85,92 @@
 
 <style scoped>
 .game-card {
-  position: relative;
   height: 100%;
-  background: rgba(18, 22, 30, 0.82);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(15, 18, 25, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(8px);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
-.game-card__inner {
+.game-card__art {
   position: relative;
-  height: 100%;
+}
+
+/* Soften the seam between the art and the card body */
+.game-card__art::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(15, 18, 25, 0.9), transparent);
+  pointer-events: none;
+}
+
+.game-card__art :deep(.v-img__img) {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.game-card__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  letter-spacing: 0.05em;
+}
+
+.game-card__body {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.game-card__accent {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--game-color);
+.game-card__tag {
+  letter-spacing: 0.14em;
   opacity: 0.9;
-  border-radius: 0 4px 4px 0;
 }
 
 .game-card__description {
   flex: 1;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.6;
 }
 
-.game-card:not(.game-card--disabled):hover {
-  transform: translateY(-6px);
-  border-color: var(--game-color);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+.game-card__divider {
+  opacity: 0.08;
+}
+
+.game-card__action {
+  min-height: 24px;
+}
+
+.game-card:not(.game-card--disabled) {
   cursor: pointer;
 }
 
-.game-card--disabled {
-  filter: grayscale(0.9);
-  opacity: 0.65;
+.game-card:not(.game-card--disabled):hover {
+  transform: translateY(-8px);
+  border-color: color-mix(in srgb, var(--game-color) 65%, transparent);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.55),
+    0 0 0 1px color-mix(in srgb, var(--game-color) 25%, transparent),
+    0 0 36px color-mix(in srgb, var(--game-color) 18%, transparent);
+}
+
+.game-card:not(.game-card--disabled):hover .game-card__art :deep(.v-img__img) {
+  transform: scale(1.05);
+}
+
+.game-card--disabled .game-card__art {
+  opacity: 0.85;
+}
+
+.game-card--disabled:hover {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 </style>
