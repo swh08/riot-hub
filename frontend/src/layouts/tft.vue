@@ -14,7 +14,7 @@
               contain
               max-height="40"
               max-width="40"
-              src="@/assets/logo.png"
+              src="@/assets/brand/tft-logo.ico"
             />
             <span class="text-h6 ml-2 text-white">云顶大学</span>
           </RouterLink>
