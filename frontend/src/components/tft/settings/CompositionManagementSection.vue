@@ -15,7 +15,12 @@
             </v-chip>
           </div>
           <div class="text-body-2 text-medium-emphasis mt-1">
-            上传阵容图、拖拽调整强度分级，改动会立即保存。
+            <span class="desktop-strength-hint">
+              上传阵容图、拖拽调整强度分级，改动会立即保存。
+            </span>
+            <span class="mobile-strength-hint">
+              长按选择强度，左右滑动可快速升降一级。
+            </span>
           </div>
         </div>
 
@@ -110,6 +115,10 @@
   min-height: 0;
 }
 
+.mobile-strength-hint {
+  display: none;
+}
+
 @media (max-width: 960px) {
   .composition-section {
     min-height: unset;
@@ -117,6 +126,14 @@
 
   .composition-board {
     min-height: unset;
+  }
+
+  .desktop-strength-hint {
+    display: none;
+  }
+
+  .mobile-strength-hint {
+    display: inline;
   }
 }
 </style>

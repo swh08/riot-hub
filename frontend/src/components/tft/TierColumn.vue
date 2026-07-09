@@ -22,6 +22,7 @@
         :animation="150"
         chosen-class="drag-chosen"
         class="drop-zone"
+        :disabled="mobileGestures"
         drag-class="drag-dragging"
         :empty-insert-threshold="24"
         :fallback-on-body="true"
@@ -41,11 +42,23 @@
         @change="$emit('change', $event)"
       >
         <template #item="{ element }">
-          <CompCard :comp="element" @delete="openDelete" @edit="openEdit" />
+          <CompCard
+            :comp="element"
+            :mobile-gestures="mobileGestures && !saving"
+            @delete="openDelete"
+            @edit="openEdit"
+            @gesture-end="$emit('gesture-end', $event)"
+            @gesture-move="$emit('gesture-move', $event)"
+            @gesture-start="$emit('gesture-start', $event)"
+            @tier-picker="$emit('tier-picker', $event)"
+            @tier-step="$emit('tier-step', $event)"
+          />
         </template>
       </Draggable>
 
-      <div v-if="items.length === 0" class="empty-overlay">拖拽阵容到这里</div>
+      <div v-if="items.length === 0" class="empty-overlay">
+        {{ mobileGestures ? '当前没有阵容' : '拖拽阵容到这里' }}
+      </div>
     </v-card-text>
   </v-card>
 
@@ -101,6 +114,8 @@
     title: { type: String, required: true },
     items: { type: Array, required: true },
     group: { type: String, default: 'tiers' },
+    mobileGestures: Boolean,
+    saving: Boolean,
   })
 
   const TIER_META = {
@@ -115,7 +130,14 @@
     '--tier-color': tierColor.value,
   }))
 
-  defineEmits(['change'])
+  defineEmits([
+    'change',
+    'gesture-end',
+    'gesture-move',
+    'gesture-start',
+    'tier-picker',
+    'tier-step',
+  ])
 
   const tft = useTftStore()
 
@@ -251,16 +273,23 @@
 
 @media (max-width: 960px) {
   .tier-card {
-    min-height: 360px;
+    height: auto;
+    min-height: 0;
   }
 
   .tier-body {
-    max-height: min(60dvh, 32rem);
+    max-height: none;
+    overflow-y: visible;
   }
 
   .drop-zone {
-    min-height: calc(100% - 24px);
-    padding-bottom: 48px;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .empty-overlay {
+    position: static;
+    min-height: 88px;
   }
 }
 </style>
