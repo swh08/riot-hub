@@ -181,16 +181,15 @@
     dragging.value = false
   }
 
-  function completeSwipe (direction) {
+  function completeSwipe (exitDirection) {
     // Phase 1: let the card keep flying in the swipe direction, then
     // phase 2 retargets the still-running transition into the back slot.
     const exitX = (deckEl.value?.clientWidth || 320) * 0.6
-    dragX.value = direction === 1 ? -exitX : exitX
+    dragX.value = exitDirection === 1 ? -exitX : exitX
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        activeIndex.value
-          = (activeIndex.value + direction + count.value) % count.value
+        activeIndex.value = (activeIndex.value + 1) % count.value
         dragX.value = 0
       })
     })
