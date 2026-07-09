@@ -98,9 +98,12 @@
     </v-bottom-sheet>
 
     <v-snackbar v-model="undo.visible" :timeout="5000">
-      已将 {{ undo.name }} 调整为 {{ tierName(undo.toTier) }}
+      <span class="tier-undo-message">
+        已将 {{ undo.name }} 调整为 {{ tierName(undo.toTier) }}
+      </span>
       <template #actions>
         <v-btn
+          color="primary"
           :loading="undo.loading"
           variant="text"
           @click="undoTierChange"
@@ -517,6 +520,10 @@
 
 .tier-picker__option {
   min-height: 76px;
+}
+
+.tier-undo-message {
+  color: rgba(255, 255, 255, 0.92);
 }
 
 @media (max-width: 960px) {
