@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
                 ('uid', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('version', models.CharField(max_length=255, unique=True)),
                 ('is_active', models.BooleanField(default=False)),
+                ('background', models.ImageField(blank=True, null=True, upload_to=tft.models.season_background_upload_to)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),
@@ -30,7 +31,7 @@ class Migration(migrations.Migration):
                 ('uid', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('image', models.ImageField(upload_to=tft.models.upload_to)),
                 ('filename', models.CharField(max_length=255)),
-                ('comp_code', models.CharField(max_length=255)),
+                ('comp_code', models.CharField(blank=True, max_length=255)),
                 ('tier_level', models.IntegerField()),
                 ('tier_display', models.CharField(max_length=255)),
                 ('keywords', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=255), blank=True, default=list, size=None)),
@@ -39,7 +40,7 @@ class Migration(migrations.Migration):
                 ('season', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='images', to='tft.season')),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('season', 'comp_code'), name='uniq_comp_code_per_season')],
+                'constraints': [models.UniqueConstraint(fields=('season', 'filename', 'comp_code'), name='uniq_comp_filename_code_per_season')],
             },
         ),
     ]
