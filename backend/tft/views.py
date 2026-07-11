@@ -1,5 +1,9 @@
+from pathlib import Path, PurePosixPath
+
+from django.core.files.storage import default_storage
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from .models import Season, TeamComposition
@@ -9,6 +13,9 @@ from .serializers import (
     TeamCompositionSerializer,
 )
 from .services import get_active_season
+
+
+SUPPORTED_COMPOSITION_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 
 
 class SeasonViewSet(viewsets.ModelViewSet):
@@ -51,6 +58,54 @@ class SeasonViewSet(viewsets.ModelViewSet):
         season.is_active = True
         season.save(update_fields=["is_active"])
         return Response(self.get_serializer(season).data)
+
+    @action(detail=True, methods=["post"], url_path="import-compositions")
+    def import_compositions(self, request, pk=None):
+        season = self.get_object()
+        directory = PurePosixPath("season", season.version).as_posix()
+
+        try:
+            _, filenames = default_storage.listdir(directory)
+        except FileNotFoundError as exc:
+            raise NotFound(
+                detail=f"未找到当前赛季的媒体目录：media/{directory}"
+            ) from exc
+
+        image_filenames = sorted(
+            filename
+            for filename in filenames
+            if Path(filename).suffix.lower() in SUPPORTED_COMPOSITION_EXTENSIONS
+        )
+        existing_filenames = set(
+            TeamComposition.objects.filter(
+                season=season,
+                filename__in=image_filenames,
+            ).values_list("filename", flat=True)
+        )
+
+        compositions = [
+            TeamComposition(
+                season=season,
+                image=PurePosixPath(directory, filename).as_posix(),
+                filename=filename,
+                comp_code="",
+                tier_level=2,
+                tier_display="B",
+                keywords=[],
+            )
+            for filename in image_filenames
+            if filename not in existing_filenames
+        ]
+        TeamComposition.objects.bulk_create(compositions)
+
+        return Response(
+            {
+                "season": season.version,
+                "imported": len(compositions),
+                "skipped": len(existing_filenames),
+                "ignored": len(filenames) - len(image_filenames),
+            }
+        )
 
 
 class TeamCompositionViewSet(viewsets.ModelViewSet):

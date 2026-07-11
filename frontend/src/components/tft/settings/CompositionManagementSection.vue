@@ -36,6 +36,18 @@
 
           <v-btn
             color="primary"
+            :disabled="!tft.season || loading || saving || importing"
+            :loading="importing"
+            prepend-icon="mdi-folder-download-outline"
+            variant="tonal"
+            @click="importCompositions"
+          >
+            一键导入
+          </v-btn>
+
+          <v-btn
+            color="primary"
+            :disabled="!tft.season || importing"
             prepend-icon="mdi-upload"
             variant="flat"
             @click="uploadOpen = true"
@@ -54,6 +66,18 @@
       </v-card-text>
     </v-card>
 
+    <v-alert
+      v-if="importFeedback"
+      class="flex-0-0"
+      closable
+      density="compact"
+      :type="importFeedback.type"
+      variant="tonal"
+      @click:close="importFeedback = null"
+    >
+      {{ importFeedback.message }}
+    </v-alert>
+
     <div class="composition-board">
       <TierBoard ref="board" class="composition-board__content" />
     </div>
@@ -70,6 +94,8 @@
 
   const board = ref(null)
   const uploadOpen = ref(false)
+  const importing = ref(false)
+  const importFeedback = ref(null)
 
   const loading = computed(() => board.value?.loading?.value ?? false)
   const saving = computed(() => board.value?.saving?.value ?? false)
@@ -77,6 +103,30 @@
   async function reload () {
     await tft.loadSeasons()
     await board.value?.reload?.()
+  }
+
+  async function importCompositions () {
+    importing.value = true
+    importFeedback.value = null
+
+    try {
+      const result = await tft.importSeasonCompositions()
+      const ignoredMessage = result.ignored > 0
+        ? `，忽略 ${result.ignored} 个非图片文件`
+        : ''
+
+      importFeedback.value = {
+        type: 'success',
+        message: `导入完成：新增 ${result.imported} 个，跳过 ${result.skipped} 个重复文件${ignoredMessage}。`,
+      }
+    } catch (error) {
+      importFeedback.value = {
+        type: 'error',
+        message: error?.response?.data?.detail || error?.message || '一键导入失败',
+      }
+    } finally {
+      importing.value = false
+    }
   }
 </script>
 

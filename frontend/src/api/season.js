@@ -33,3 +33,8 @@ export async function deleteSeasonBackground (uid) {
   const res = await http.delete(`/tft/seasons/${uid}/background/`)
   return res.data
 }
+
+export async function importSeasonCompositions (uid) {
+  const res = await http.post(`/tft/seasons/${uid}/import-compositions/`)
+  return res.data
+}

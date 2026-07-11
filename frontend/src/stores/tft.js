@@ -377,6 +377,17 @@ export const useTftStore = defineStore('tft', () => {
     return data
   }
 
+  async function importSeasonCompositions () {
+    const record = selectedSeasonRecord.value
+    if (!record) {
+      throw new Error('请先选择赛季')
+    }
+
+    const result = await seasonApi.importSeasonCompositions(record.uid)
+    await loadComps()
+    return result
+  }
+
   return {
     drawer,
     search,
@@ -412,5 +423,6 @@ export const useTftStore = defineStore('tft', () => {
     hasCustomSeasonBackground,
     setSeasonBackground,
     clearSeasonBackground,
+    importSeasonCompositions,
   }
 })
