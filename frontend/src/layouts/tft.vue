@@ -181,7 +181,7 @@
 
       <v-menu v-model="menuOpen" scrim width="220">
         <template #activator="{ props }">
-          <v-btn icon v-bind="props">
+          <v-btn aria-label="打开应用菜单" icon v-bind="props">
             <v-avatar>
               <v-icon>mdi-widgets</v-icon>
             </v-avatar>
@@ -224,10 +224,57 @@
                 <v-icon>mdi-view-grid-outline</v-icon>
               </template>
             </v-list-item>
+
+            <v-list-item
+              color="primary"
+              rounded="lg"
+              title="关于"
+              @click="openAbout"
+            >
+              <template #prepend>
+                <v-icon>mdi-information-outline</v-icon>
+              </template>
+            </v-list-item>
           </v-list>
         </v-card>
       </v-menu>
     </v-app-bar>
+
+    <v-dialog v-model="aboutOpen" max-width="420">
+      <v-card class="transparent" rounded="lg" variant="flat">
+        <v-card-title class="about-dialog__header">
+          <v-avatar color="primary" size="40" variant="tonal">
+            <v-icon size="22">mdi-information-outline</v-icon>
+          </v-avatar>
+
+          <div class="about-dialog__title">
+            <div class="text-subtitle-1 font-weight-bold">关于 Riot Hub</div>
+            <div class="text-caption text-medium-emphasis">
+              自托管的 Riot 游戏内容中心
+            </div>
+          </div>
+
+          <v-btn
+            aria-label="关闭关于"
+            icon="mdi-close"
+            size="small"
+            variant="text"
+            @click="aboutOpen = false"
+          />
+        </v-card-title>
+
+        <v-divider />
+
+        <v-card-text class="about-dialog__body">
+          <div class="about-dialog__row">
+            <span class="text-body-2 text-medium-emphasis">版本</span>
+            <v-chip color="primary" size="small" variant="tonal">
+              {{ appVersion }}
+            </v-chip>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
     <v-main class="main-root">
       <router-view />
@@ -245,6 +292,7 @@
     SETTINGS_SECTIONS,
   } from '@/constants/settings'
   import { useTftStore } from '@/stores/tft'
+  import packageMetadata from '../../package.json'
 
   const route = useRoute()
   const router = useRouter()
@@ -252,6 +300,9 @@
   const { smAndDown } = useDisplay()
 
   const menuOpen = ref(false)
+  const aboutOpen = ref(false)
+  const rawVersion = String(packageMetadata.version || '0.0.0')
+  const appVersion = rawVersion.startsWith('v') ? rawVersion : `v${rawVersion}`
 
   const isMobile = computed(() => smAndDown.value)
   const isSettingsRoute = computed(() => route.path.startsWith('/tft/settings'))
@@ -337,6 +388,11 @@
     menuOpen.value = false
     closeDrawerOnMobile()
     router.push('/')
+  }
+
+  function openAbout () {
+    menuOpen.value = false
+    aboutOpen.value = true
   }
 
   async function handleSeasonChange (nextSeason) {
@@ -426,6 +482,30 @@
 
 .season-switcher {
   width: min(220px, 32vw);
+}
+
+.about-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.about-dialog__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.about-dialog__body {
+  padding: 20px;
+}
+
+.about-dialog__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
 }
 
 @media (max-width: 600px) {
