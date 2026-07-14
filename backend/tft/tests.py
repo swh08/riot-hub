@@ -1,14 +1,25 @@
+import json
 import tempfile
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, override_settings
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from tft.models import Season, TeamComposition
-from tft.views import SeasonViewSet, TeamCompositionViewSet
+from tft.serializers import CompositionMetadataSerializer
+from tft.views import (
+    SeasonViewSet,
+    TeamCompositionViewSet,
+    _validate_metadata_season,
+    _write_composition_metadata,
+)
 
 
 SMALL_GIF = (
@@ -72,6 +83,207 @@ class SeasonViewSetTests(SimpleTestCase):
         view.get_object.assert_called_once_with()
 
 
+class CompositionMetadataSerializerTests(SimpleTestCase):
+    def test_requires_season(self):
+        serializer = CompositionMetadataSerializer(
+            data={"compositions": [{"filename": "comp.png"}]}
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("season", serializer.errors)
+
+    def test_defaults_tier_fields_and_optional_metadata(self):
+        serializer = CompositionMetadataSerializer(
+            data={
+                "season": 17,
+                "compositions": [{"filename": "comp.png", "tier_level": 0}],
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        item = serializer.validated_data["compositions"][0]
+        self.assertEqual(item["comp_code"], "")
+        self.assertEqual(item["tier_display"], "S")
+        self.assertEqual(item["keywords"], [])
+
+    def test_rejects_duplicate_filenames(self):
+        serializer = CompositionMetadataSerializer(
+            data={
+                "season": 17,
+                "compositions": [
+                    {"filename": "comp.png"},
+                    {"filename": "comp.png"},
+                ]
+            }
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("compositions", serializer.errors)
+
+    def test_legacy_uid_is_ignored(self):
+        serializer = CompositionMetadataSerializer(
+            data={
+                "season": 17,
+                "compositions": [
+                    {
+                        "uid": "2f653bae-e92b-4a30-87d6-090263c1dce2",
+                        "filename": "comp.png",
+                    }
+                ]
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertNotIn("uid", serializer.validated_data["compositions"][0])
+
+
+class CompositionMetadataSeasonTests(SimpleTestCase):
+    def test_rejects_non_integer_season(self):
+        with self.assertRaises(ValidationError) as raised:
+            _validate_metadata_season(
+                {"season": "17"}, SimpleNamespace(version="17")
+            )
+
+        self.assertEqual(
+            raised.exception.detail["detail"],
+            "metadata 必须包含 JSON integer 类型的 season 字段。",
+        )
+
+    def test_rejects_different_season(self):
+        with self.assertRaises(ValidationError) as raised:
+            _validate_metadata_season({"season": 17}, SimpleNamespace(version="16"))
+
+        self.assertEqual(
+            raised.exception.detail["detail"],
+            "metadata 属于赛季 17，不能恢复到赛季 16。",
+        )
+
+
+class CompositionMetadataWriterTests(SimpleTestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_dir.name)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.media_dir.cleanup)
+
+    def test_rewrites_metadata_with_latest_composition_values(self):
+        season = SimpleNamespace(version="17")
+        composition = SimpleNamespace(
+            filename="comp.png",
+            comp_code="OLD-CODE",
+            tier_level=1,
+            tier_display="A",
+            keywords=["tempo"],
+        )
+
+        metadata_path = _write_composition_metadata(season, [composition])
+        composition.comp_code = "NEW-CODE"
+        _write_composition_metadata(season, [composition])
+
+        with default_storage.open(metadata_path, "rb") as metadata_file:
+            metadata = json.loads(metadata_file.read().decode("utf-8"))
+        self.assertEqual(metadata["season"], 17)
+        self.assertIsInstance(metadata["season"], int)
+        self.assertEqual(metadata["compositions"][0]["comp_code"], "NEW-CODE")
+
+
+class SeasonCompositionMetadataViewTests(SimpleTestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_dir.name)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.media_dir.cleanup)
+        self.season = SimpleNamespace(version="17")
+
+    def metadata_upload(self, comp_code="BACKUP-CODE"):
+        payload = {
+            "schema_version": 1,
+            "season": 17,
+            "compositions": [
+                {
+                    "filename": "comp.gif",
+                    "comp_code": comp_code,
+                    "tier_level": 0,
+                    "tier_display": "S",
+                    "keywords": ["backup"],
+                }
+            ],
+        }
+        return SimpleUploadedFile(
+            "metadata.json",
+            json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            content_type="application/json",
+        )
+
+    def store_image(self):
+        default_storage.save("season/17/comp.gif", ContentFile(SMALL_GIF))
+
+    def test_exports_existing_metadata_as_attachment(self):
+        _write_composition_metadata(self.season, [])
+        view = SeasonViewSet()
+        view.get_object = MagicMock(return_value=self.season)
+
+        response = view.composition_metadata(
+            SimpleNamespace(method="GET"), pk="season-17"
+        )
+        body = b"".join(response.streaming_content)
+        response.close()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertIn(
+            'filename="season-17-metadata.json"', response["Content-Disposition"]
+        )
+        self.assertEqual(json.loads(body.decode("utf-8"))["season"], 17)
+
+    def test_imports_metadata_and_runs_composition_sync(self):
+        self.store_image()
+        view = SeasonViewSet()
+        view.get_object = MagicMock(return_value=self.season)
+        view.import_compositions = MagicMock(
+            return_value=Response({"imported": 1, "updated": 0, "skipped": 0})
+        )
+        request = SimpleNamespace(
+            method="POST", data={"metadata": self.metadata_upload()}
+        )
+
+        response = view.composition_metadata(request, pk="season-17")
+
+        self.assertTrue(response.data["metadata_imported"])
+        view.import_compositions.assert_called_once_with(request, pk="season-17")
+        with default_storage.open("season/17/metadata.json", "rb") as metadata_file:
+            metadata = json.loads(metadata_file.read().decode("utf-8"))
+        self.assertEqual(metadata["compositions"][0]["comp_code"], "BACKUP-CODE")
+
+    def test_failed_import_restores_previous_metadata(self):
+        self.store_image()
+        previous = SimpleNamespace(
+            filename="comp.gif",
+            comp_code="CURRENT-CODE",
+            tier_level=1,
+            tier_display="A",
+            keywords=[],
+        )
+        _write_composition_metadata(self.season, [previous])
+        view = SeasonViewSet()
+        view.get_object = MagicMock(return_value=self.season)
+        view.import_compositions = MagicMock(
+            side_effect=ValidationError({"detail": "数据库同步失败"})
+        )
+        request = SimpleNamespace(
+            method="POST", data={"metadata": self.metadata_upload("BACKUP-CODE")}
+        )
+
+        with self.assertRaises(ValidationError):
+            view.composition_metadata(request, pk="season-17")
+
+        with default_storage.open("season/17/metadata.json", "rb") as metadata_file:
+            metadata = json.loads(metadata_file.read().decode("utf-8"))
+        self.assertEqual(metadata["compositions"][0]["comp_code"], "CURRENT-CODE")
+
+
 class TeamCompositionViewSetTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -108,8 +320,11 @@ class TeamCompositionViewSetTests(SimpleTestCase):
         ordered.filter.assert_called_once_with(season=active_season)
         self.assertEqual(queryset, ordered.filter.return_value)
 
+    @patch("tft.views._write_composition_metadata")
     @patch("tft.views.get_active_season")
-    def test_perform_create_saves_with_active_season(self, get_active_season):
+    def test_perform_create_updates_metadata(
+        self, get_active_season, write_composition_metadata
+    ):
         active_season = SimpleNamespace(uid="season-16", version="16")
         serializer = MagicMock()
         get_active_season.return_value = active_season
@@ -120,6 +335,28 @@ class TeamCompositionViewSetTests(SimpleTestCase):
 
         get_active_season.assert_called_once_with()
         serializer.save.assert_called_once_with(season=active_season)
+        write_composition_metadata.assert_called_once_with(active_season)
+
+    @patch("tft.views._write_composition_metadata")
+    def test_perform_update_updates_metadata(self, write_composition_metadata):
+        season = SimpleNamespace(uid="season-16", version="16")
+        serializer = MagicMock()
+        serializer.save.return_value = SimpleNamespace(season=season)
+
+        TeamCompositionViewSet().perform_update(serializer)
+
+        serializer.save.assert_called_once_with()
+        write_composition_metadata.assert_called_once_with(season)
+
+    @patch("tft.views._write_composition_metadata")
+    def test_perform_destroy_updates_metadata(self, write_composition_metadata):
+        season = SimpleNamespace(uid="season-16", version="16")
+        composition = SimpleNamespace(season=season, delete=MagicMock())
+
+        TeamCompositionViewSet().perform_destroy(composition)
+
+        composition.delete.assert_called_once_with()
+        write_composition_metadata.assert_called_once_with(season)
 
 
 class TeamCompositionModelTests(SimpleTestCase):
@@ -251,6 +488,206 @@ class TeamCompositionAPITests(APITestCase):
         self.addCleanup(self.settings_override.disable)
         self.addCleanup(self.media_dir.cleanup)
 
+    @staticmethod
+    def store_season_file(season, filename):
+        path = f"season/{season.version}/{filename}"
+        return default_storage.save(path, ContentFile(SMALL_GIF))
+
+    @staticmethod
+    def read_metadata(season):
+        path = f"season/{season.version}/metadata.json"
+        with default_storage.open(path, "rb") as metadata_file:
+            return json.loads(metadata_file.read().decode("utf-8"))
+
+    @staticmethod
+    def write_metadata(season, payload):
+        path = f"season/{season.version}/metadata.json"
+        if default_storage.exists(path):
+            default_storage.delete(path)
+        default_storage.save(
+            path,
+            ContentFile(json.dumps(payload, ensure_ascii=False).encode("utf-8")),
+        )
+
+    def test_import_compositions_creates_portable_metadata(self):
+        season = Season.objects.create(version="17", is_active=True)
+        self.store_season_file(season, "阵容.gif")
+
+        response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/import-compositions/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["imported"], 1)
+        self.assertEqual(response.data["updated"], 0)
+        self.assertTrue(response.data["metadata_created"])
+
+        TeamComposition.objects.get(season=season)
+        metadata = self.read_metadata(season)
+        self.assertEqual(metadata["schema_version"], 1)
+        self.assertEqual(metadata["season"], 17)
+        self.assertEqual(len(metadata["compositions"]), 1)
+        self.assertNotIn("uid", metadata["compositions"][0])
+        self.assertEqual(metadata["compositions"][0]["filename"], "阵容.gif")
+        self.assertEqual(metadata["compositions"][0]["comp_code"], "")
+
+    def test_first_metadata_generation_preserves_existing_database_values(self):
+        season = Season.objects.create(version="17", is_active=True)
+        self.store_season_file(season, "existing.gif")
+        TeamComposition.objects.create(
+            season=season,
+            image="season/17/existing.gif",
+            filename="existing.gif",
+            comp_code="SET17-EXISTING",
+            tier_level=1,
+            tier_display="A",
+            keywords=["tempo"],
+        )
+
+        response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/import-compositions/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["imported"], 0)
+        self.assertEqual(response.data["updated"], 0)
+        self.assertEqual(response.data["skipped"], 1)
+
+        metadata_item = self.read_metadata(season)["compositions"][0]
+        self.assertNotIn("uid", metadata_item)
+        self.assertEqual(metadata_item["comp_code"], "SET17-EXISTING")
+        self.assertEqual(metadata_item["tier_level"], 1)
+        self.assertEqual(metadata_item["tier_display"], "A")
+        self.assertEqual(metadata_item["keywords"], ["tempo"])
+
+    def test_import_compositions_updates_database_from_metadata(self):
+        season = Season.objects.create(version="17", is_active=True)
+        self.store_season_file(season, "existing.gif")
+        self.client.post(f"/api/tft/seasons/{season.uid}/import-compositions/")
+        composition = TeamComposition.objects.get(season=season)
+
+        metadata = self.read_metadata(season)
+        metadata["compositions"][0].update(
+            {
+                "comp_code": "SET17-UPDATED",
+                "tier_level": 0,
+                "tier_display": "S+",
+                "keywords": ["fast 9", "flex"],
+            }
+        )
+        self.write_metadata(season, metadata)
+
+        response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/import-compositions/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["imported"], 0)
+        self.assertEqual(response.data["updated"], 1)
+        self.assertFalse(response.data["metadata_created"])
+
+        composition.refresh_from_db()
+        self.assertEqual(composition.filename, "existing.gif")
+        self.assertEqual(composition.image.name, "season/17/existing.gif")
+        self.assertEqual(composition.comp_code, "SET17-UPDATED")
+        self.assertEqual(composition.tier_level, 0)
+        self.assertEqual(composition.tier_display, "S+")
+        self.assertEqual(composition.keywords, ["fast 9", "flex"])
+
+    def test_import_compositions_rejects_metadata_for_missing_image(self):
+        season = Season.objects.create(version="17", is_active=True)
+        self.store_season_file(season, "actual.gif")
+        self.write_metadata(
+            season,
+            {
+                "schema_version": 1,
+                "season": 17,
+                "compositions": [{"filename": "missing.gif"}],
+            },
+        )
+
+        response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/import-compositions/"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing.gif", response.data["detail"])
+        self.assertFalse(TeamComposition.objects.filter(season=season).exists())
+
+    def test_import_compositions_rejects_metadata_from_another_season(self):
+        season = Season.objects.create(version="16", is_active=True)
+        self.store_season_file(season, "comp.gif")
+        self.write_metadata(
+            season,
+            {
+                "schema_version": 1,
+                "season": 17,
+                "compositions": [{"filename": "comp.gif"}],
+            },
+        )
+
+        response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/import-compositions/"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["detail"],
+            "metadata 属于赛季 17，不能恢复到赛季 16。",
+        )
+        self.assertFalse(TeamComposition.objects.filter(season=season).exists())
+
+    def test_metadata_file_import_restores_and_export_downloads_state(self):
+        season = Season.objects.create(version="17", is_active=True)
+        self.store_season_file(season, "backup.gif")
+        metadata = {
+            "schema_version": 1,
+            "season": 17,
+            "compositions": [
+                {
+                    "filename": "backup.gif",
+                    "comp_code": "SET17-BACKUP",
+                    "tier_level": 1,
+                    "tier_display": "A",
+                    "keywords": ["restored"],
+                }
+            ],
+        }
+
+        import_response = self.client.post(
+            f"/api/tft/seasons/{season.uid}/composition-metadata/",
+            {
+                "metadata": SimpleUploadedFile(
+                    "metadata.json",
+                    json.dumps(metadata).encode("utf-8"),
+                    content_type="application/json",
+                )
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(import_response.status_code, 200)
+        self.assertTrue(import_response.data["metadata_imported"])
+        composition = TeamComposition.objects.get(season=season)
+        self.assertEqual(composition.filename, "backup.gif")
+        self.assertEqual(composition.comp_code, "SET17-BACKUP")
+        self.assertEqual(composition.tier_level, 1)
+        self.assertEqual(composition.keywords, ["restored"])
+
+        export_response = self.client.get(
+            f"/api/tft/seasons/{season.uid}/composition-metadata/"
+        )
+        exported_metadata = json.loads(
+            b"".join(export_response.streaming_content).decode("utf-8")
+        )
+
+        self.assertEqual(export_response.status_code, 200)
+        self.assertIn("attachment", export_response["Content-Disposition"])
+        self.assertEqual(exported_metadata["season"], 17)
+        self.assertEqual(
+            exported_metadata["compositions"][0]["comp_code"], "SET17-BACKUP"
+        )
+
     def test_composition_management_flow_uses_active_and_requested_seasons(self):
         season_16_response = self.client.post(
             "/api/tft/seasons/", {"version": "16"}, format="json"
@@ -282,6 +719,11 @@ class TeamCompositionAPITests(APITestCase):
         self.assertEqual(upload_response.data["filename"], "duelist.gif")
         self.assertEqual(upload_response.data["comp_code"], "SET16-DUELIST")
         self.assertEqual(upload_response.data["tier_level"], 0)
+        season_16 = Season.objects.get(uid=season_16_response.data["uid"])
+        self.assertEqual(
+            self.read_metadata(season_16)["compositions"][0]["comp_code"],
+            "SET16-DUELIST",
+        )
 
         list_response = self.client.get("/api/tft/images/", {"season": "16"})
         self.assertEqual(list_response.status_code, 200)
@@ -307,6 +749,10 @@ class TeamCompositionAPITests(APITestCase):
         self.assertEqual(patch_response.data["comp_code"], "SET16-DUELIST-V2")
         self.assertEqual(patch_response.data["tier_level"], 1)
         self.assertEqual(patch_response.data["keywords"], ["tempo"])
+        self.assertEqual(
+            self.read_metadata(season_16)["compositions"][0]["comp_code"],
+            "SET16-DUELIST-V2",
+        )
 
         image_name = TeamComposition.objects.get(uid=comp_uid).image.name
         storage = TeamComposition.objects.get(uid=comp_uid).image.storage
@@ -316,6 +762,7 @@ class TeamCompositionAPITests(APITestCase):
         self.assertEqual(delete_response.status_code, 204)
         self.assertFalse(TeamComposition.objects.filter(uid=comp_uid).exists())
         self.assertFalse(storage.exists(image_name))
+        self.assertEqual(self.read_metadata(season_16)["compositions"], [])
 
     def test_same_filename_and_code_can_be_reused_in_different_seasons(self):
         season_16 = Season.objects.create(version="16", is_active=True)
