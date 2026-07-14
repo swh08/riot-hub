@@ -26,28 +26,70 @@
 
         <div class="composition-toolbar__actions">
           <v-btn
+            class="composition-toolbar__action"
+            color="primary"
+            height="40"
             :loading="loading"
             prepend-icon="mdi-refresh"
-            variant="text"
+            variant="flat"
             @click="reload"
           >
             刷新
           </v-btn>
 
           <v-btn
+            class="composition-toolbar__action"
             color="primary"
-            :disabled="!tft.season || loading || saving || importing"
+            :disabled="!tft.season || loading || saving || importing || metadataBusy"
+            height="40"
             :loading="importing"
-            prepend-icon="mdi-folder-download-outline"
-            variant="tonal"
+            prepend-icon="mdi-sync"
+            variant="flat"
             @click="importCompositions"
           >
-            一键导入
+            同步目录
           </v-btn>
 
+          <v-menu location="bottom end">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                append-icon="mdi-chevron-down"
+                class="composition-toolbar__action"
+                color="primary"
+                :disabled="!tft.season || importing || metadataBusy"
+                height="40"
+                :loading="metadataBusy"
+                prepend-icon="mdi-database-outline"
+                variant="flat"
+              >
+                备份与恢复
+              </v-btn>
+            </template>
+
+            <v-list class="metadata-menu" density="compact">
+              <v-list-item
+                :disabled="restoringMetadata"
+                prepend-icon="mdi-download-outline"
+                subtitle="下载当前赛季状态"
+                title="导出 metadata"
+                @click="exportMetadata"
+              />
+              <v-list-item
+                :disabled="exportingMetadata"
+                prepend-icon="mdi-backup-restore"
+                subtitle="从 JSON 备份恢复"
+                title="导入 metadata"
+                @click="openMetadataImport"
+              />
+            </v-list>
+          </v-menu>
+
           <v-btn
+            class="composition-toolbar__action"
             color="primary"
-            :disabled="!tft.season || importing"
+            :disabled="!tft.season || importing || metadataBusy"
+            height="40"
             prepend-icon="mdi-upload"
             variant="flat"
             @click="uploadOpen = true"
@@ -83,6 +125,13 @@
     </div>
 
     <CompUploadDialog v-model="uploadOpen" @uploaded="reload" />
+    <input
+      ref="metadataInput"
+      accept=".json,application/json"
+      class="metadata-file-input"
+      type="file"
+      @change="restoreMetadata"
+    >
   </div>
 </template>
 
@@ -93,12 +142,16 @@
   const tft = useTftStore()
 
   const board = ref(null)
+  const metadataInput = ref(null)
   const uploadOpen = ref(false)
   const importing = ref(false)
+  const exportingMetadata = ref(false)
+  const restoringMetadata = ref(false)
   const importFeedback = ref(null)
 
   const loading = computed(() => board.value?.loading?.value ?? false)
   const saving = computed(() => board.value?.saving?.value ?? false)
+  const metadataBusy = computed(() => exportingMetadata.value || restoringMetadata.value)
 
   async function reload () {
     await tft.loadSeasons()
@@ -114,18 +167,79 @@
       const ignoredMessage = result.ignored > 0
         ? `，忽略 ${result.ignored} 个非图片文件`
         : ''
+      const metadataMessage = result.metadata_created
+        ? '，已创建 metadata.json'
+        : ''
 
       importFeedback.value = {
         type: 'success',
-        message: `导入完成：新增 ${result.imported} 个，跳过 ${result.skipped} 个重复文件${ignoredMessage}。`,
+        message: `同步完成：新增 ${result.imported} 个，更新 ${result.updated} 个，未变化 ${result.skipped} 个${ignoredMessage}${metadataMessage}。`,
       }
     } catch (error) {
       importFeedback.value = {
         type: 'error',
-        message: error?.response?.data?.detail || error?.message || '一键导入失败',
+        message: error?.response?.data?.detail || error?.message || '一键同步失败',
       }
     } finally {
       importing.value = false
+    }
+  }
+
+  async function exportMetadata () {
+    exportingMetadata.value = true
+    importFeedback.value = null
+
+    try {
+      const metadata = await tft.exportSeasonCompositionMetadata()
+      const url = URL.createObjectURL(metadata)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `season-${tft.season}-metadata.json`
+      document.body.append(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      importFeedback.value = {
+        type: 'success',
+        message: `赛季 ${tft.season} metadata 备份已导出。`,
+      }
+    } catch (error) {
+      importFeedback.value = {
+        type: 'error',
+        message: error?.response?.data?.detail || error?.message || 'metadata 导出失败',
+      }
+    } finally {
+      exportingMetadata.value = false
+    }
+  }
+
+  function openMetadataImport () {
+    metadataInput.value?.click()
+  }
+
+  async function restoreMetadata (event) {
+    const input = event.target
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    restoringMetadata.value = true
+    importFeedback.value = null
+
+    try {
+      const result = await tft.restoreSeasonCompositionMetadata(file)
+      importFeedback.value = {
+        type: 'success',
+        message: `恢复完成：新增 ${result.imported} 个，更新 ${result.updated} 个，未变化 ${result.skipped} 个。`,
+      }
+    } catch (error) {
+      importFeedback.value = {
+        type: 'error',
+        message: error?.response?.data?.detail || error?.message || 'metadata 恢复失败',
+      }
+    } finally {
+      restoringMetadata.value = false
     }
   }
 </script>
@@ -150,8 +264,16 @@
 .composition-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.composition-toolbar__action {
+  flex: 0 0 auto;
+}
+
+.metadata-menu {
+  min-width: 240px;
 }
 
 .composition-board {
@@ -163,6 +285,10 @@
 .composition-board__content {
   flex: 1;
   min-height: 0;
+}
+
+.metadata-file-input {
+  display: none;
 }
 
 .mobile-strength-hint {
@@ -178,12 +304,27 @@
     min-height: unset;
   }
 
+  .composition-toolbar__actions {
+    width: 100%;
+  }
+
   .desktop-strength-hint {
     display: none;
   }
 
   .mobile-strength-hint {
     display: inline;
+  }
+}
+
+@media (max-width: 600px) {
+  .composition-toolbar__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+.composition-toolbar__action {
+    width: 100%;
   }
 }
 </style>

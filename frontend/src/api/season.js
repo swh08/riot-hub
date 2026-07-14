@@ -38,3 +38,21 @@ export async function importSeasonCompositions (uid) {
   const res = await http.post(`/tft/seasons/${uid}/import-compositions/`)
   return res.data
 }
+
+export async function exportSeasonCompositionMetadata (uid) {
+  const res = await http.get(`/tft/seasons/${uid}/composition-metadata/`, {
+    responseType: 'blob',
+  })
+  return res.data
+}
+
+export async function restoreSeasonCompositionMetadata (uid, file) {
+  const formData = new FormData()
+  formData.append('metadata', file)
+
+  const res = await http.post(
+    `/tft/seasons/${uid}/composition-metadata/`,
+    formData,
+  )
+  return res.data
+}

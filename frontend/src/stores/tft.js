@@ -388,6 +388,26 @@ export const useTftStore = defineStore('tft', () => {
     return result
   }
 
+  async function exportSeasonCompositionMetadata () {
+    const record = selectedSeasonRecord.value
+    if (!record) {
+      throw new Error('请先选择赛季')
+    }
+
+    return seasonApi.exportSeasonCompositionMetadata(record.uid)
+  }
+
+  async function restoreSeasonCompositionMetadata (file) {
+    const record = selectedSeasonRecord.value
+    if (!record || !file) {
+      throw new Error('请选择赛季和 metadata 文件')
+    }
+
+    const result = await seasonApi.restoreSeasonCompositionMetadata(record.uid, file)
+    await loadComps()
+    return result
+  }
+
   return {
     drawer,
     search,
@@ -424,5 +444,7 @@ export const useTftStore = defineStore('tft', () => {
     setSeasonBackground,
     clearSeasonBackground,
     importSeasonCompositions,
+    exportSeasonCompositionMetadata,
+    restoreSeasonCompositionMetadata,
   }
 })
