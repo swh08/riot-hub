@@ -1,6 +1,6 @@
 <template>
   <div
-    class="mb-2 comp-card-shell"
+    class="comp-card-shell"
     :class="{ 'comp-card-shell--mobile': mobileGestures }"
   >
     <span
@@ -9,6 +9,7 @@
     >
       {{ promoteLabel }}
     </span>
+
     <span
       aria-hidden="true"
       class="comp-card-shell__swipe comp-card-shell__swipe--demote"
@@ -31,14 +32,17 @@
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
     >
-      <v-card-title class="comp-card__title d-flex align-center py-2">
+      <div class="comp-card__row">
         <v-chip
-          :aria-label="`当前强度 ${comp.tierName}，点击调整`"
+          :aria-label="mobileGestures
+            ? `当前强度 ${comp.tierName}，点击调整`
+            : `当前强度 ${comp.tierName}`"
           class="no-drag comp-card__tier font-weight-bold flex-shrink-0"
           :class="{ 'comp-card__tier--interactive': mobileGestures }"
           :color="tierColor"
-          role="button"
-          size="small"
+          :role="mobileGestures ? 'button' : undefined"
+          size="x-small"
+          :tabindex="mobileGestures ? 0 : -1"
           variant="tonal"
           @click.stop="openTierPicker"
           @keydown.enter.prevent="openTierPicker"
@@ -47,51 +51,45 @@
           {{ comp.tierName }}
         </v-chip>
 
-        <span class="text-subtitle-2 font-weight-bold text-truncate ml-2">
+        <span class="comp-card__name" :title="displayName">
           {{ displayName }}
         </span>
 
-        <v-spacer />
+        <span v-if="comp.code" class="comp-card__code" :title="comp.code">
+          {{ comp.code }}
+        </span>
 
-        <v-btn
-          aria-label="编辑阵容"
-          class="no-drag comp-card__action"
-          color="warning"
-          icon
-          size="x-small"
-          variant="text"
-          @click.stop="$emit('edit', comp)"
+        <span
+          v-if="keywordSummary"
+          class="comp-card__keywords"
+          :title="(comp.keywords || []).join(' / ')"
         >
-          <v-icon size="18">mdi-pencil</v-icon>
-        </v-btn>
+          {{ keywordSummary }}
+        </span>
 
-        <v-btn
-          aria-label="删除阵容"
-          class="no-drag comp-card__action"
-          color="error"
-          icon
-          size="x-small"
-          variant="text"
-          @click.stop="$emit('delete', comp)"
-        >
-          <v-icon size="18">mdi-delete</v-icon>
-        </v-btn>
-      </v-card-title>
+        <div class="comp-card__actions">
+          <v-btn
+            aria-label="编辑阵容"
+            class="no-drag comp-card__action"
+            icon
+            size="x-small"
+            variant="text"
+            @click.stop="$emit('edit', comp)"
+          >
+            <v-icon size="17">mdi-pencil</v-icon>
+          </v-btn>
 
-      <v-card-subtitle class="comp-card__code text-caption pb-2">
-        {{ comp.code }}
-      </v-card-subtitle>
-
-      <div v-if="(comp.keywords || []).length > 0" class="px-3 pb-3">
-        <v-chip
-          v-for="kw in comp.keywords.slice(0, 6)"
-          :key="kw"
-          class="mr-1 mb-1 comp-card__keyword"
-          size="x-small"
-          variant="outlined"
-        >
-          {{ kw }}
-        </v-chip>
+          <v-btn
+            aria-label="删除阵容"
+            class="no-drag comp-card__action comp-card__action--danger"
+            icon
+            size="x-small"
+            variant="text"
+            @click.stop="$emit('delete', comp)"
+          >
+            <v-icon size="17">mdi-delete</v-icon>
+          </v-btn>
+        </div>
       </div>
     </v-card>
   </div>
@@ -142,7 +140,14 @@
     timer: null,
   })
 
-  const displayName = computed(() => (props.comp?.name || '').split('.')[0])
+  const displayName = computed(() => (props.comp?.name || '').split('.', 1)[0])
+  const keywordSummary = computed(() => {
+    const keywords = props.comp?.keywords || []
+    const visible = keywords.slice(0, 2).join(' / ')
+    const remaining = keywords.length - 2
+
+    return remaining > 0 ? `${visible} +${remaining}` : visible
+  })
   const tierLevel = computed(() => Number(props.comp?.tierLevel))
   const tierColor = computed(
     () => TIER_COLORS[tierLevel.value] || '#9aa4b2',
@@ -312,6 +317,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
+  margin-bottom: 8px;
 }
 
 .comp-card-shell__swipe {
@@ -368,10 +374,40 @@
 .comp-card::before {
   content: '';
   position: absolute;
+  z-index: 2;
   inset: 0 auto 0 0;
-  width: 3px;
-  background: var(--tier-color);
-  opacity: 0.85;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tier-color) 22%, transparent),
+    var(--tier-color) 24%,
+    color-mix(in srgb, var(--tier-color) 72%, white) 50%,
+    var(--tier-color) 76%,
+    color-mix(in srgb, var(--tier-color) 22%, transparent)
+  );
+  box-shadow:
+    2px 0 8px color-mix(in srgb, var(--tier-color) 48%, transparent),
+    4px 0 14px color-mix(in srgb, var(--tier-color) 20%, transparent);
+  opacity: 0.92;
+  transition:
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.comp-card::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 72% 150% at 0% 50%,
+    color-mix(in srgb, var(--tier-color) 16%, transparent),
+    color-mix(in srgb, var(--tier-color) 8%, transparent) 38%,
+    transparent 72%
+  );
+  opacity: 0.72;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
 .comp-card:hover {
@@ -379,8 +415,63 @@
   background: #1a2130;
 }
 
-.comp-card__title {
-  min-height: 0;
+.comp-card:hover::before {
+  box-shadow:
+    2px 0 10px color-mix(in srgb, var(--tier-color) 64%, transparent),
+    5px 0 18px color-mix(in srgb, var(--tier-color) 28%, transparent);
+  opacity: 1;
+}
+
+.comp-card:hover::after {
+  opacity: 1;
+}
+
+.comp-card__row {
+  position: relative;
+  z-index: 1;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 7px 7px 11px;
+}
+
+.comp-card__tier {
+  min-width: 28px;
+  justify-content: center;
+}
+
+.comp-card__name,
+.comp-card__code,
+.comp-card__keywords {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comp-card__name {
+  min-width: 58px;
+  max-width: 108px;
+  flex: 1 1 92px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.comp-card__code {
+  min-width: 48px;
+  flex: 1 1 96px;
+  color: rgba(255, 255, 255, 0.44);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.comp-card__keywords {
+  max-width: 82px;
+  flex: 0 1 82px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
 }
 
 .comp-card__tier--interactive {
@@ -389,23 +480,46 @@
   cursor: pointer;
 }
 
-.comp-card__code {
-  opacity: 0.55;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.02em;
-}
-
-.comp-card__keyword {
-  opacity: 0.75;
+.comp-card__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
 }
 
 .comp-card__action {
-  opacity: 0.4;
-  transition: opacity 0.2s ease;
+  color: rgba(255, 255, 255, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.comp-card:hover .comp-card__action {
+.comp-card:hover .comp-card__action,
+.comp-card:focus-within .comp-card__action {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.comp-card__action:hover {
+  color: #c8aa6e;
+}
+
+.comp-card__action--danger:hover {
+  color: #ff6b77;
+}
+
+@container tier-body (max-width: 330px) {
+  .comp-card__keywords {
+    display: none;
+  }
+}
+
+@container tier-body (max-width: 275px) {
+  .comp-card__code {
+    display: none;
+  }
 }
 
 @media (max-width: 960px), (pointer: coarse) {
@@ -422,11 +536,24 @@
     min-width: 44px;
     min-height: 44px;
     opacity: 0.72;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .comp-card__keywords {
+    display: none;
+  }
+
+  .comp-card__name {
+    max-width: 116px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .comp-card {
+  .comp-card,
+  .comp-card::before,
+  .comp-card::after {
     transition: none;
   }
 }

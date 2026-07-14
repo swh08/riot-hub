@@ -1,18 +1,18 @@
 <template>
-  <v-card class="tier-card transparent" rounded="lg" :style="columnStyle">
-    <v-card-title class="tier-header d-flex align-center py-3">
-      <v-chip
-        class="tier-header__label text-h6 font-weight-bold"
-        :color="tierColor"
-        variant="tonal"
+  <v-card class="tier-card" rounded="lg" :style="columnStyle" variant="flat">
+    <v-card-title class="tier-header">
+      <div class="tier-header__identity">
+        <span class="tier-header__level">{{ title }}</span>
+        <span class="tier-header__caption">{{ tierCaption }}</span>
+      </div>
+
+      <span
+        :aria-label="`${items.length} 套阵容`"
+        class="tier-header__count"
       >
-        {{ title }}
-      </v-chip>
-      <span class="tier-header__caption text-caption ml-3">
-        {{ tierCaption }}
+        <strong>{{ items.length }}</strong>
+        <span>套</span>
       </span>
-      <v-spacer />
-      <v-chip size="small" variant="outlined">{{ items.length }}</v-chip>
     </v-card-title>
 
     <v-divider class="tier-header__divider" />
@@ -89,9 +89,11 @@
 
       <v-card-actions class="pa-4">
         <v-spacer />
+
         <v-btn :disabled="remove.loading" variant="text" @click="closeDelete">
           取消
         </v-btn>
+
         <v-btn
           color="error"
           :loading="remove.loading"
@@ -199,37 +201,102 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0c111b;
 }
 
-/* Tier-colored top edge */
 .tier-card::before {
   content: '';
   flex: 0 0 auto;
   height: 3px;
   background: linear-gradient(
     90deg,
-    var(--tier-color),
-    color-mix(in srgb, var(--tier-color) 20%, transparent)
+    color-mix(in srgb, var(--tier-color) 24%, transparent),
+    var(--tier-color) 28%,
+    color-mix(in srgb, var(--tier-color) 72%, white) 50%,
+    var(--tier-color) 72%,
+    color-mix(in srgb, var(--tier-color) 24%, transparent)
   );
-  opacity: 0.9;
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--tier-color) 42%, transparent),
+    0 4px 16px color-mix(in srgb, var(--tier-color) 18%, transparent);
+  opacity: 0.96;
+}
+
+.tier-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tier-color) 13%, #0c111b),
+    color-mix(in srgb, var(--tier-color) 6%, #0c111b) 54%,
+    color-mix(in srgb, var(--tier-color) 2%, #0c111b)
+  );
+}
+
+.tier-header__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tier-header__level {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--tier-color) 38%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tier-color) 13%, transparent);
+  color: var(--tier-color);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .tier-header__caption {
-  color: color-mix(in srgb, var(--tier-color) 75%, white);
-  letter-spacing: 0.08em;
-  opacity: 0.8;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tier-header__count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 11px;
+}
+
+.tier-header__count strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .tier-header__divider {
-  opacity: 0.06;
+  opacity: 0.08;
 }
 
 .tier-body {
   position: relative;
   flex: 1;
+  container-name: tier-body;
+  container-type: inline-size;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 10px;
 }
 
 :global(.sortable-fallback) {
