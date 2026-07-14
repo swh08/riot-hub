@@ -135,6 +135,20 @@ Vite 开发服务器运行在 `http://localhost:3000`，并将 `/api` 代理到 
 - `POST /api/tft/seasons/:uid/set_active/`——设置激活赛季。
 - `POST /api/tft/seasons/:uid/background/`——上传或替换赛季背景图（multipart 字段 `background`，最大 10 MB）。
 - `DELETE /api/tft/seasons/:uid/background/`——删除赛季背景图及其存储文件。
+- `POST /api/tft/seasons/:uid/import-compositions/`——将赛季文件夹及其 `metadata.json` 同步到数据库。
+- `GET /api/tft/seasons/:uid/composition-metadata/`——下载当前赛季 metadata JSON 备份。
+- `POST /api/tft/seasons/:uid/composition-metadata/`——上传 metadata JSON 备份并恢复阵容状态。
+
+第一次同步会创建 `media/season/<版本>/metadata.json`。每条阵容记录包含图片文件名、
+阵容码、强度和关键词，不保存数据库生成的 UID。修改文件后再次点击“一键同步”，
+即可按图片文件名更新对应数据库记录。metadata 引用的图片必须存在于赛季文件夹中，
+未写入 metadata 的数据库记录不会被自动删除。通过 API 上传、编辑或删除阵容后，也会
+立即按数据库最新状态重写该赛季的 metadata。文件顶层的 integer `season` 必须与当前
+选择的赛季一致，否则会在写入数据库前拒绝恢复。
+
+阵容设置工具栏提供“导出备份”和“导入恢复”。导入会先校验 JSON、赛季号以及引用的
+图片文件，再同步数据库；同步失败时会恢复原 metadata 文件。恢复是非破坏性的，备份中
+没有出现的数据库记录不会被自动删除。
 
 ### 前端数据映射
 

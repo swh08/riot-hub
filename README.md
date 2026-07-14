@@ -135,6 +135,42 @@ The frontend uses Axios with `baseURL: '/api'`. All TFT endpoints live under the
 - `POST /api/tft/seasons/:uid/set_active/` — mark a season as active.
 - `POST /api/tft/seasons/:uid/background/` — upload or replace the season background image (multipart field `background`, max 10 MB).
 - `DELETE /api/tft/seasons/:uid/background/` — remove the season background image and its stored file.
+- `POST /api/tft/seasons/:uid/import-compositions/` — sync the season folder and its `metadata.json` into the database.
+- `GET /api/tft/seasons/:uid/composition-metadata/` — download the selected season metadata as a JSON backup.
+- `POST /api/tft/seasons/:uid/composition-metadata/` — upload a metadata JSON backup and restore its composition state.
+
+The first composition sync creates `media/season/<version>/metadata.json`. Each entry
+contains the image filename, composition code, tier, and keywords:
+
+```json
+{
+  "schema_version": 1,
+  "season": 17,
+  "compositions": [
+    {
+      "filename": "duelist.png",
+      "comp_code": "SET17-DUELIST",
+      "tier_level": 0,
+      "tier_display": "S",
+      "keywords": ["fast 8", "reroll"]
+    }
+  ]
+}
+```
+
+Edit the file and run the sync again to update database records matched by filename.
+Image files referenced by metadata must exist in the season folder; records omitted
+from metadata are not deleted automatically. Uploading, editing, or deleting a
+composition through the API rewrites the season metadata immediately from the latest
+database state. Database-generated composition IDs are intentionally not stored. The
+integer `season` must match the selected season or the restore is rejected before any
+database changes are made.
+
+The composition settings toolbar exposes the same workflow as **Export Backup** and
+**Import Restore**. Import validates the JSON, season number, and referenced image
+files before syncing. If database synchronization fails, the server restores the
+previous metadata file. Restore is non-destructive: database records omitted from the
+backup are not automatically deleted.
 
 ### Frontend Data Mapping
 
