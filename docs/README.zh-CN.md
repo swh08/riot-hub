@@ -1,222 +1,192 @@
 <div align="center">
 
-<img src="../frontend/src/assets/brand/riot-hub-logo.png" alt="Riot Hub" width="300" />
+<img src="../frontend/src/assets/brand/riot-hub-logo.png" alt="Riot Hub" width="320" />
 
-### 自托管的 Riot Games 多游戏内容中心
+### 你的游戏，你的知识，一个完全自托管的中心。
 
-现已支持云顶之弈的赛季与阵容管理——<br/>
-英雄联盟和无畏契约模块在规划中。
+Riot Hub 将阵容、赛季资料和游戏知识整理成一个真正属于你的专注工作空间。<br />
+云顶之弈现已可用，英雄联盟与无畏契约将沿用同一套模块化平台。
 
 <p>
   <img alt="Vue 3" src="https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white" />
   <img alt="Vuetify 3" src="https://img.shields.io/badge/Vuetify-3-1867c0?logo=vuetify&logoColor=white" />
-  <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white" />
   <img alt="Django 5" src="https://img.shields.io/badge/Django-5-092e20?logo=django&logoColor=white" />
   <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-4169e1?logo=postgresql&logoColor=white" />
-  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white" />
+  <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white" />
 </p>
 
-[English](../README.md) | **简体中文**
+[体验亮点](#体验亮点) · [Docker 部署](#快速开始) · [系统架构](#系统架构) · [English](../README.md)
 
 </div>
 
 ---
 
-## 项目简介
+<p align="center">
+  <img src="assets/riot-hub-overview.jpg" alt="Riot Hub 游戏选择界面" width="100%" />
+</p>
 
-Riot Hub 打开后首先是游戏选择页，每个游戏进入各自独立的模块。云顶之弈已完整支持：赛季管理、阵容上传与编辑、S/A/B 强度分级、一键复制阵容码、每赛季独立背景图，以及响应式大图预览。英雄联盟和无畏契约以规划中卡片展示。
+## 一个入口，承载每一款 Riot 游戏
 
-## 功能亮点
+Riot Hub 以游戏启动中心作为入口，再为每款游戏提供彼此独立的工作空间。
+当前 TFT 模块覆盖从收集阵容到整理、检索和实战使用的完整流程，让阵容知识
+不再散落在文件夹、聊天记录和浏览器书签中。
 
-- **Hub 游戏选择首页**——手机上是可滑动切换的堆叠卡片（丝滑手势动效），桌面端为网格布局。
-- **按赛季浏览**，顶部工具栏提供全局赛季选择器。
-- **搜索导航**，支持按阵容名称和自定义关键词过滤。
-- **强度看板**（S / A / B），拖拽调整并通过后端 API 持久化。
-- **阵容管理**——上传、编辑元数据、删除、刷新、一键复制阵容码。
-- **赛季管理**——创建赛季、切换查看赛季、设置激活赛季，并为每个赛季上传自定义背景图（保存在后端，跨设备共享）。
-- **响应式布局**，侧边栏、工具栏和管理页面自适应桌面与移动端。
+| 发现 | 整理 | 维护 | 掌控 |
+| --- | --- | --- | --- |
+| 通过可视化游戏中心进入模块，按名称或关键词搜索阵容。 | 在 S / A / B 强度看板中拖拽调整阵容并持久保存。 | 在一个界面管理赛季、图片、阵容码、标签和赛季背景。 | 完整自托管，并可导出或恢复可迁移的赛季元数据。 |
 
-## 架构说明
+## 体验亮点
 
-Riot Hub 采用**模块化单体**架构：单前端镜像 + 单后端镜像 + 单数据库，一个 `docker-compose.yml` 一条命令部署。游戏之间靠目录和命名空间隔离，而不是拆分服务：
+### 专注的 TFT 工作空间
 
-- 每个游戏使用三字母标识（`tft`、`lol`、`val`），贯穿前端路由（`/tft`）、API 前缀（`/api/tft/`）、Django app 和数据库表前缀（`tft_*`）。
-- 游戏模块之间禁止互相 import，model 之间禁止跨游戏外键。若确有共享需求，建立单向依赖的 `common` 层。
-- 新增游戏的标准动作：创建挂在 `/api/<game>/` 下的 Django app，建立 `pages/<game>/` 路由树及配套布局、store、组件，并在 `src/constants/games.js` 中启用对应卡片。无需修改 compose、nginx 或 CI。
+- 在顶部全局切换赛季，无需离开当前工作流。
+- 通过响应式大图查看阵容，并一键复制阵容码。
+- 从导航侧栏按文件名或自定义关键词搜索阵容。
+- 在设置中心上传、编辑、删除、刷新阵容，或重新调整强度分级。
+- 创建赛季、设置当前激活赛季，并为每个赛季配置专属背景。
 
-完整设计文档见 [hub-refactor-architecture.md](hub-refactor-architecture.md)。
+### 与图片同行的元数据
 
-### 项目结构
+每个赛季都可以在阵容图片旁维护一份 `metadata.json`。Riot Hub 会将界面中的
+修改同步回文件，并支持经过校验的导出与恢复。文件只保存阵容码、强度和关键词
+等可迁移字段，不保存数据库生成的 ID，因此离开应用后依然清晰可读。
 
-```text
-riot-hub/
-  frontend/
-    src/
-      api/                 后端接口封装
-      components/
-        hub/               Hub 游戏卡片与移动端堆叠卡片
-        tft/               TFT 查看、卡片、弹窗、强度看板和设置组件
-      constants/           前端共享常量（游戏卡片、设置分区）
-      layouts/             default.vue（Hub 极简壳）与 tft.vue（TFT 导航布局）
-      pages/
-        index.vue          Hub 游戏选择页
-        tft/               TFT 路由（/tft、/tft/settings）
-      plugins/             Vuetify、Router、Pinia 等插件注册
-      stores/              Pinia 状态管理
-      styles/              Vuetify 与全局样式配置
-  backend/
-    config/                Django 项目配置与根路由
-    tft/                   TFT app：赛季与阵容 API
-  docs/                    架构文档与翻译文档
+```json
+{
+  "schema_version": 1,
+  "season": 17,
+  "compositions": [
+    {
+      "filename": "duelist.png",
+      "comp_code": "SET17-DUELIST",
+      "tier_level": 0,
+      "tier_display": "S",
+      "keywords": ["fast 8", "reroll"]
+    }
+  ]
+}
 ```
+
+导入前会校验 JSON 结构、赛季号和引用的图片文件。同步失败时，服务端会恢复
+之前的 metadata 文件，避免留下半完成状态。
 
 ## 快速开始
 
-### Docker Compose（类生产环境）
+通过 Docker Compose 可以最快获得一套接近生产环境的完整部署。
 
 ```bash
-cp .env.production.example .env   # 编辑其中的密钥和域名
+cp .env.production.example .env
+# 编辑 .env 中的密钥与域名配置
 docker compose up -d
 ```
 
-前端服务在 `8080` 端口，后端 API 在 `8000` 端口，PostgreSQL 数据持久化在 `./data/` 目录。
+打开 `http://localhost:8080`。前端使用 `8080` 端口，后端 API 使用 `8000`
+端口，PostgreSQL 数据与上传文件持久化在 `./data/` 下。
 
 ### 本地开发
 
-环境要求：Node.js 20+、Python 3.10+、可访问的 PostgreSQL 实例。
-
-后端：
+环境要求：Node.js 20+、Python 3.10+，以及一个可访问的 PostgreSQL 实例。
 
 ```bash
+# 终端 1 — 后端
 cd backend
-python -m venv .venv && .venv/Scripts/activate   # Linux/macOS 用 source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate        # Linux / macOS
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver 8000
 ```
 
-前端：
-
 ```bash
+# 终端 2 — 前端
 cd frontend
 npm install
 npm run dev
 ```
 
-Vite 开发服务器运行在 `http://localhost:3000`，并将 `/api` 代理到 `http://localhost:8000`。
+Vite 开发服务器运行在 `http://localhost:3000`，并将 `/api` 代理到
+`http://localhost:8000` 的 Django 服务。
 
-### 前端脚本
+| 前端命令 | 用途 |
+| --- | --- |
+| `npm run dev` | 启动支持热更新的开发服务器 |
+| `npm run build` | 将生产构建输出到 `frontend/dist` |
+| `npm run preview` | 在本地预览生产构建 |
+| `npm run lint` | 运行 ESLint 并自动修复 |
 
-以下命令在 `frontend/` 目录执行：
+## 系统架构
 
-| 命令              | 说明                               |
-| ----------------- | ---------------------------------- |
-| `npm run dev`     | 启动 Vite 开发服务器（支持热更新） |
-| `npm run build`   | 构建生产版本到 `frontend/dist`     |
-| `npm run preview` | 本地预览生产构建结果               |
-| `npm run lint`    | 运行 ESLint 并自动修复             |
+Riot Hub 采用模块化单体架构：一个前端、一个后端和一个数据库，通过一份
+Compose 文件交付。游戏边界由代码目录与命名规范保证，无需为每款游戏增加
+一套基础设施。
 
-## API 参考
+```mermaid
+flowchart LR
+    Browser["浏览器"] --> Frontend["Vue 3 + Vuetify"]
+    Frontend -->|"/api/tft/"| Backend["Django REST API"]
+    Backend --> Database[("PostgreSQL")]
+    Backend --> Media["赛季图片 + metadata"]
+```
 
-前端 Axios 使用 `baseURL: '/api'`，所有 TFT 接口位于 `/api/tft/` 命名空间下。
+每款游戏使用统一的三字母标识，贯穿前端路由、API 前缀、Django app 和数据库表。
+例如 `tft`、`/tft`、`/api/tft/` 和 `tft_*`。游戏模块之间不互相 import，model
+之间也不建立跨游戏引用；真正需要共享的能力才进入单向依赖的 `common` 层。
 
-### 阵容接口
+```text
+riot-hub/
+├── frontend/
+│   └── src/
+│       ├── components/hub/     游戏卡片与移动端堆叠卡片
+│       ├── components/tft/     查看器、弹窗、强度看板和设置
+│       ├── pages/              Hub 与各游戏的路由树
+│       ├── layouts/            Hub 与 TFT 应用外壳
+│       └── stores/             Pinia 共享状态
+├── backend/
+│   ├── config/                 Django 项目配置
+│   └── tft/                    赛季与阵容 API
+├── docs/                       架构文档与多语言说明
+└── docker-compose.yml          完整应用部署
+```
 
-- `GET /api/tft/images/?season=<version>`——获取指定赛季的阵容图片列表。
-- `POST /api/tft/images/`——使用 multipart form data 上传阵容图片。
-- `PATCH /api/tft/images/:uid/`——更新阵容码、关键词或强度等元数据。
-- `DELETE /api/tft/images/:uid/`——删除阵容图片。
+模块规则、命名空间约定和新增游戏清单详见
+[架构设计文档](hub-refactor-architecture.md)。
 
-### 赛季接口
+## API 概览
 
-- `GET /api/tft/seasons/`——获取赛季列表，每条记录包含 `background` 背景图 URL（无背景时为 `null`）。
-- `POST /api/tft/seasons/`——创建赛季。
-- `GET /api/tft/seasons/current/`——获取当前激活赛季。
-- `POST /api/tft/seasons/:uid/set_active/`——设置激活赛季。
-- `POST /api/tft/seasons/:uid/background/`——上传或替换赛季背景图（multipart 字段 `background`，最大 10 MB）。
-- `DELETE /api/tft/seasons/:uid/background/`——删除赛季背景图及其存储文件。
-- `POST /api/tft/seasons/:uid/import-compositions/`——将赛季文件夹及其 `metadata.json` 同步到数据库。
-- `GET /api/tft/seasons/:uid/composition-metadata/`——下载当前赛季 metadata JSON 备份。
-- `POST /api/tft/seasons/:uid/composition-metadata/`——上传 metadata JSON 备份并恢复阵容状态。
+前端 Axios 使用 `baseURL: '/api'`，当前实现的 TFT 资源都位于 `/api/tft/` 下。
 
-第一次同步会创建 `media/season/<版本>/metadata.json`。每条阵容记录包含图片文件名、
-阵容码、强度和关键词，不保存数据库生成的 UID。修改文件后再次点击“一键同步”，
-即可按图片文件名更新对应数据库记录。metadata 引用的图片必须存在于赛季文件夹中，
-未写入 metadata 的数据库记录不会被自动删除。通过 API 上传、编辑或删除阵容后，也会
-立即按数据库最新状态重写该赛季的 metadata。文件顶层的 integer `season` 必须与当前
-选择的赛季一致，否则会在写入数据库前拒绝恢复。
-
-阵容设置工具栏提供“导出备份”和“导入恢复”。导入会先校验 JSON、赛季号以及引用的
-图片文件，再同步数据库；同步失败时会恢复原 metadata 文件。恢复是非破坏性的，备份中
-没有出现的数据库记录不会被自动删除。
-
-### 前端数据映射
-
-前端会将后端阵容记录映射为以下内部字段：
-
-- `uid`——阵容唯一标识。
-- `filename`——显示名称来源。
-- `comp_code`——用户复制的阵容码。
-- `tier_level`——数字强度等级，`0` 为 S，`1` 为 A，`2` 为 B。
-- `tier_display`——强度展示名称。
-- `keywords`——可搜索关键词。
-- `image_url` 或 `image`——用于展示的图片地址。
-
-## 主要使用流程
-
-1. 打开 Hub 游戏选择页，点击 TFT 卡片进入 `/tft` 阵容管理。
-2. 在顶部栏选择需要查看的赛季。
-3. 在侧边栏浏览阵容，按名称或关键词搜索，并点击阵容查看大图。
-4. 需要时在侧边栏一键复制阵容码。
-5. 进入设置中心的阵容管理，上传图片、编辑信息、删除阵容、刷新数据，或将卡片拖拽到不同强度栏。
-6. 进入设置中心的赛季管理，创建赛季、切换查看赛季、设置激活赛季，或上传赛季背景图。
-7. 通过顶部菜单的「返回 Hub」回到游戏选择页。
-
-## 前端说明
-
-- 路由由 `src/pages/**/*.vue` 通过 `unplugin-vue-router` 自动生成。
-- 布局由 `vite-plugin-vue-layouts-next` 处理：Hub 页使用极简的 `default` 布局，TFT 页面在 route block 中声明 `layout: tft`。
-- 页面标题来自各页面 route block 中的 `meta.title`，未声明时回落到「Riot Hub」。
-- Vuetify 组件通过 `vite-plugin-vuetify` 和 `unplugin-vue-components` 自动导入。
-- TFT 相关共享状态集中在 `src/stores/tft.js`。
-- 开发环境代理配置位于 `frontend/vite.config.mjs`。
+| 资源 | 核心操作 |
+| --- | --- |
+| `/api/tft/images/` | 获取、上传、编辑和删除阵容图片及元数据 |
+| `/api/tft/seasons/` | 获取和创建赛季 |
+| `/api/tft/seasons/current/` | 获取当前激活赛季 |
+| `/api/tft/seasons/:uid/set_active/` | 设置激活赛季 |
+| `/api/tft/seasons/:uid/background/` | 上传、替换或删除赛季背景 |
+| `/api/tft/seasons/:uid/import-compositions/` | 将赛季目录同步到数据库 |
+| `/api/tft/seasons/:uid/composition-metadata/` | 导出或恢复 metadata JSON 备份 |
 
 ## 路线图
 
-Hub 游戏选择页和按游戏划分的命名空间已经就绪。计划扩展方向：
+- **英雄联盟**——出装、符文、对位笔记、装备方案和策略资料。
+- **无畏契约**——特工点位、地图笔记、技能道具布置和战术资料。
+- **平台共享能力**——可复用的搜索、上传、标签和内容整理工具。
 
-- **英雄联盟**——英雄出装、对位笔记、符文页、装备方案和策略资料。
-- **无畏契约**——特工点位、地图笔记、技能道具布置、阵容搭配和战术资料。
-- 将上传、搜索、标签和内容整理能力复用于各游戏模块。
+游戏启动中心和命名空间模型已经就绪；后续接入新游戏时，无需额外增加数据库、
+反向代理或部署栈。
 
-## 常见问题
+## 发布说明
 
-- 如果页面能打开但没有阵容，请确认后端运行在 `http://localhost:8000`，并且 `/api/tft/seasons/` 至少返回一个赛季。
-- 如果上传失败，请确认当前已选择有效赛季，且后端支持 `image`、`comp_code`、`tier_level`、`tier_display`、`keywords` 这些 multipart 字段。
-- 如果拖拽调整强度后回滚，请检查 `PATCH /api/tft/images/:uid/` 的响应和后端校验错误。
-- 如果赛季背景没有显示，请检查 `/api/tft/seasons/` 返回的 `background` 字段，并确认对应媒体文件可以通过 `/media/` 访问。
+GitHub Actions 会在 Pull Request 中检查前后端 Docker 镜像。包含有效构建变更的
+`main` 分支推送会发布 `latest` 和下一个 patch 版本：
 
-## 部署
+- `${DOCKERHUB_NAMESPACE}/riot-hub-frontend`
+- `${DOCKERHUB_NAMESPACE}/riot-hub-backend`
 
-使用 `npm run build` 构建前端并将 `frontend/dist` 部署到 Web 服务器，或直接使用提供的 Docker 镜像。生产环境需要确保 `/api` 能正确转发到后端服务。
-
-### Docker 发布（CI）
-
-GitHub workflow 需要以下仓库配置：
-
-- `DOCKERHUB_USERNAME` secret——Docker Hub 登录用户名。
-- `DOCKERHUB_TOKEN` secret——Docker Hub access token。
-- 可选 `DOCKERHUB_NAMESPACE` repository variable——发布镜像使用的命名空间或组织名。
-
-发布的镜像：`${DOCKERHUB_NAMESPACE}/riot-hub-backend` 和 `${DOCKERHUB_NAMESPACE}/riot-hub-frontend`。
-
-发布行为：
-
-- Pull request 只构建检查镜像，不推送。
-- 纯文档改动（`*.md`、`*.mdx`、`docs/*`、`LICENSE`、`LICENSE.*`）会跳过 Docker 构建与发布。
-- 推送到 `main` 会自动创建下一个 patch 版本标签；仓库没有历史 `v*` 标签时从 `v0.1.0` 开始。
-- 每次发布会为每个镜像推送 `latest` 和新的版本标签。
+仓库需要配置 `DOCKERHUB_USERNAME` 和 `DOCKERHUB_TOKEN` secrets；可选的
+`DOCKERHUB_NAMESPACE` repository variable 可以覆盖镜像命名空间。纯文档改动
+不会触发镜像构建和发布。
 
 ## 许可证
 
-当前仓库暂未包含许可证文件。公开发布或分发前建议补充许可证。
+当前仓库尚未包含许可证。公开发布或分发前请先补充许可证文件。
